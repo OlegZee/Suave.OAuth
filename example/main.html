@@ -1,0 +1,19 @@
+﻿<head>
+	<title>Main page</title>
+</head>
+<body>
+	<h1>Main page</h1>
+	Hello there {{model.name}}!
+	<p>
+		
+	{% if model.logged_in == false %}
+	<a href="/oaquery" title="Google login">Login via google</a> 
+	<a href="/login">Login</a> 
+
+	{% else %}
+	<p>
+	You are logged on as: {{model.logged_as}}
+	<a href="/logout">Logout</a>
+
+	{% endif %}
+</body>
