@@ -11,21 +11,22 @@ page, create a new project, navigate to `Credentials` page, click `Add credentia
 specifying redundant info.
 
 Now copy both `client id` and `client secret` to the code below.
+```fsharp
+open Suave.OAuth
 
-    open Suave.OAuth
-
-    let oauthConfigs =
-        defineProviderConfigs (function
-            | Google -> fun c ->
-                {c with
-                    client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
-                    client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
-            | _ -> id   // we do not provide secret keys for other oauth providers
-        )
-    let processLoginUri = "http://localhost:8083/oalogin"
+let oauthConfigs =
+    defineProviderConfigs (function
+        | Google -> fun c ->
+            {c with
+                client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+                client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
+        | _ -> id   // we do not provide secret keys for other oauth providers
+    )
+let processLoginUri = "http://localhost:8083/oalogin"
+```
 
 Next step is defining two routes as follows:
-
+```fsharp
     path "/oaquery" >>= GET >>= redirectAuthQuery oauthConfigs.[Google] processLoginUri
 
     path "/oalogin" >>= GET >>=
@@ -40,6 +41,7 @@ Next step is defining two routes as follows:
                 Redirection.FOUND "/"
             )
             (fun error -> OK "Authorization failed")
+```
 
 Notice the `processLoginUri` is passed around and it should match the path for second route above. You have to provide your own session management code
 as indicated in code above.
