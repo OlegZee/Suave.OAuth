@@ -44,7 +44,7 @@ Next step is defining two routes as follows:
 ```
 
 Notice the `processLoginUri` is passed around and it should match the path for second route above. You have to provide your own session management code
-as indicated in code above.
+as indicated in code above. Final step is to add "Login via Google" link pointing to "/oalogin" endpoint defined above.
 
 # References
 

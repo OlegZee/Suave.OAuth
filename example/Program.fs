@@ -23,18 +23,22 @@ module private Config =
     open System.Collections.Generic
 
     let KVf f (kv:KeyValuePair<string,_>) = (kv.Key, kv.Value |> f)
-    let d2m f (d:obj) = ((d :?> IDictionary<string,_>)) |> Seq.map (KVf f) |> Map.ofSeq
+    let jso f (d:obj) = ((d :?> IDictionary<string,_>)) |> Seq.map (KVf f) |> Map.ofSeq
+    let jss = new JavaScriptSerializer()
 
     let readConfig file =
-        let config_path = System.IO.Path.Combine(System.Environment.GetEnvironmentVariable("USERPROFILE"), file)
-        let config = System.IO.File.ReadAllText(config_path)
-        let jss = new JavaScriptSerializer()
-        config |> jss.DeserializeObject |> d2m (d2m (unbox<string>))
+        (System.Environment.GetEnvironmentVariable("USERPROFILE"), file)
+        |> System.IO.Path.Combine
+        |> System.IO.File.ReadAllText
+        |> jss.DeserializeObject
+        |> jso (jso unbox<string>)
 
 [<EntryPoint>]
 let main argv = 
 
     let model = {name = "olegz"; logged_as = ""; logged_in = false}
+
+    // Define below which provider to use for authorizing
     let oauthProvider = ProviderType.Google
 
     // Here I'm reading my personal API keys from file stored in my %HOME% folder. You will likely define you keys in code (see below).
@@ -91,7 +95,7 @@ let main argv =
                 OAuth.processLogin oauthConfigs.[oauthProvider] processLoginUri
                     (fun user_info ->
                         model.logged_in <- true
-                        model.logged_as <- (user_info.["email"] |> unbox<string>, user_info.["id"] |> unbox<string>) ||> sprintf "%s (id:%s)"
+                        model.logged_as <- (user_info.["email"] |> unbox<string>, user_info.["id"].ToString()) ||> sprintf "%s (id:%s)"
 
                         Redirection.FOUND "/"
                     )
