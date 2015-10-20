@@ -96,11 +96,6 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
 
         "nuget-pack" => action {
 
-            let (Filelist file_infos) = !! "bin/Suave.OAuth.dll" |> toFileList ""
-            let files = file_infos |> List.map (fun fi -> fi.FullName)
-
-            do! need files
-
             // some utility stuff
             let newline = System.Environment.NewLine
             let wrapXml node value = sprintf "<%s>%s</%s>" node value node
@@ -115,6 +110,8 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
                 + (deps |> List.map (fun (s,v) -> sprintf """<dependency id="%s" version="%s" />""" s v) |> String.concat newline)
                 + newline
                 
+            let files = ["bin/Suave.OAuth.dll"]
+            do! need files
 
             let! ver = getEnv("VER")
             let version = ver |> function |Some v -> v |_ -> "0.0.1"
@@ -137,7 +134,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
 
             let xml_header = "<?xml version=\"1.0\"?>" + newline
            
-            let fileContent = files |> List.map (sprintf """<file src="%s" target="lib" />""") |> String.concat newline |> wrapXmlNl "files"
+            let fileContent = files |> List.map ((</>) ".." >> sprintf """<file src="%s" target="lib" />""") |> String.concat newline |> wrapXmlNl "files"
 
             let config_data =
                 (metadata |> List.map toXmlStr |> String.concat newline |> wrapXmlNl "metadata") + fileContent
