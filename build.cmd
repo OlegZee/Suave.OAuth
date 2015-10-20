@@ -1,0 +1,1 @@
+@fsi build.fsx -- all
