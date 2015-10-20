@@ -197,3 +197,4 @@ FakesAssemblies/
 
 # mine specific
 .xake
+nupkg/
