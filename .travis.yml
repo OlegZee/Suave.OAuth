@@ -6,7 +6,7 @@ install:
 - mono .paket/paket.exe install
 script:
 - echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\"" > ./core/VersionInfo.fs
-- fsharpi build.fsx -- build
+- fsharpi build.fsx -- build nuget-pack
 deploy:
   provider: releases
   api_key:
@@ -14,6 +14,7 @@ deploy:
   file:
   - ./bin/Suave.OAuth.dll
   - ./bin/Suave.OAuth.XML
+  - ./nupkg/*.nupkg
   skip_cleanup: true
   on:
     tags: true
