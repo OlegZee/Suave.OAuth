@@ -1,0 +1,20 @@
+language: csharp
+solution: xake.sln
+env: VER=$(if [[ "${TRAVIS_TAG:0:1}" == "v" ]]; then echo ${TRAVIS_TAG:1}; else echo 0.0.0; fi;)
+install:
+- mono .paket/paket.bootstrapper.exe
+- mono .paket/paket.exe install
+script:
+- echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\"" > ./core/VersionInfo.fs
+- fsharpi build.fsx -- build
+deploy:
+  provider: releases
+  api_key:
+    secure: Lgn2Hnagx7tYvO7gIVTiH/81DseqMyjAPrKczz7xoIH7BizFZPlErqukMY8sEIXAPyeTVDoZa1hh1Jm+49YeFqihubwHcdSk1YAc56Fo535CpFxLpESZ7I5T1fAFCG1ose1p/TZarrVWUTE2oaB7gnAhQBlcoUWp/xyMRnygMAI=
+  file:
+  - ./bin/Suave.OAuth.dll
+  - ./bin/Suave.OAuth.XML
+  skip_cleanup: true
+  on:
+    tags: true
+    condition: "${TRAVIS_TAG:0:1} = v"
