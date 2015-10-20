@@ -2,6 +2,8 @@
 A set of WebParts to add OAuth authentication for Suave Web applications. The purpose of OAuth in this library is to allow users of your
 application to authorize using their google/twitter/github/... accounts.
 
+[![Build Status](https://travis-ci.org/OlegZee/Suave.OAuth.svg)](https://travis-ci.org/OlegZee/Suave.OAuth)
+
 ## Usage
 
 The following code assumes you are adding google authorization support.
@@ -48,5 +50,5 @@ as indicated in code above. Final step is to add "Login via Google" link pointin
 
 # References
 
-    [Google API](https://developers.google.com/identity/protocols/OAuth2WebServer)
-    [Github API](https://developer.github.com/v3/oauth/)
+   * [Google API](https://developers.google.com/identity/protocols/OAuth2WebServer)
+   * [Github API](https://developer.github.com/v3/oauth/)
