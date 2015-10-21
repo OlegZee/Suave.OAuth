@@ -41,11 +41,11 @@ module nuget =
         + newline
 
     let metadata = List.map toXmlStr >> String.concat newline >> wrapXmlNl "metadata"
-    let files = List.map (sprintf """<file src="%s" target="lib" />""") >> String.concat newline >> wrapXmlNl "files"
+    let files = List.map (sprintf """<file src="%s" target="lib\net40" />""") >> String.concat newline >> wrapXmlNl "files"
     let package = String.concat newline >> wrapXmlNl "package" >> ((+) ("<?xml version=\"1.0\"?>" + newline))
 
 
-do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "build.log"; ConLogLevel = Verbosity.Diag } {
+do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "build.log"; ConLogLevel = Verbosity.Diag } {
 
     rules [
         "all"  <== ["get-deps"; "build"; "nuget-pack"]
