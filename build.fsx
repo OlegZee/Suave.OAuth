@@ -147,7 +147,8 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
                             "Suave", "0.32.1"
                         ]
                     ]
-                    nuget.files (libFiles |> List.map ((</>) ".."))
+                    nuget.files libFiles
+//                    nuget.files (libFiles |> List.map ((</>) ".."))
                 ]
             printfn "%s" nuspec
 
