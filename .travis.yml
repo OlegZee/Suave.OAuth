@@ -8,10 +8,10 @@ install:
 script:
 - echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\""
   > ./core/VersionInfo.fs
-- fsharpi build.fsx -- build nuget-pack
+- fsharpi build.fsx -- build
 deploy:
   provider: script
   skip_cleanup: true
-  script: ls -l nupkg/
+  script: ls -l bin/
   api-key:
     secure: gJeQyJ7enNDOpOF2ZV6KRqEPQ5DXPjHcLcB514j9LsB9q028KKaXIg5Oa0Iq9CqxS9AT9SjXJy2KonhbUzcgwCtZk1hgdbH7bmngWi84dIk0TZKWwQO28OvAC503U6u2x2YkpMREezmr9dH49QZQ8bmGLAv5azHi0zvqnsUF7ED7rzf/VEVIFaaxHWVB6SSM+8J2vqX43rUuGYn9U2XplvpoTQgQ5gN0hJ8vEFeeAmYf5l9vXfL2iWrS4yaqZcy2APtKgwQqZwDMl37ZMjd9VIIUvSoN+63BU6f57vCpmAXeOejWUhlNyOemH8UJwQnnZzJc6uUN6b6VaGuivec9/b9U0Sy43CYO1VCbexVGX/GencbVa5rEXcatf1F8/Wb147eh7rW9Utt2R+EsgTconKpAnLZBpqFF6LywpZuABekGhGVlyfgNrICBaCFXP4sf9lsNVXjOsKweK7bFGqySBMaB8kNsVEmr3Ljb8gHiby6gsmu8ZM6u4okRj8HUHDP4RNKN280gHhBCBwsGPMPFGY6sTiHJUKnuvTca5epfiJnq5fWRN6dpAyJ51zXGr/gS2gQRRaaotO6lUhWXE+4tUkF9DkgMijhMLa5gnbtor6TxGmIjHOAYAnInkDdtjqAagSefH6JCGOUhOC0DD3YXzJvGu5zL7CLM7tz3+Rj29po=
