@@ -1,3 +1,3 @@
-set VER=0.1.2
+set VER=0.0.3
 
 fsi build.fsx -- nuget-pack

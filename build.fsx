@@ -149,7 +149,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
                     ]
                     nuget.files (libFiles |> List.map ((</>) ".."))
                 ]
-            //printfn "%s" nuspec
+            printfn "%s" nuspec
 
             let nuspec_file = "nupkg" </> "_suave.oauth.nuspec"
             do System.IO.Directory.CreateDirectory("nupkg") |> ignore
