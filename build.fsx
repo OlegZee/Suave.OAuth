@@ -155,7 +155,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
             do System.IO.Directory.CreateDirectory("nupkg") |> ignore
             do System.IO.File.WriteAllText(nuspec_file, nuspec)
 
-            let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg" ]
+            let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg"; "-Verbosity"; "detailed" ]
             
             if exec_code <> 0 then failwith "failed to build nuget package"
         }
