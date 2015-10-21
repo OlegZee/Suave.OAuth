@@ -45,7 +45,7 @@ module nuget =
     let package = String.concat newline >> wrapXmlNl "package" >> ((+) ("<?xml version=\"1.0\"?>" + newline))
 
 
-do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "build.log"; ConLogLevel = Verbosity.Chatty } {
+do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "build.log"; ConLogLevel = Verbosity.Diag } {
 
     rules [
         "all"  <== ["get-deps"; "build"; "nuget-pack"]

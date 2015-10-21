@@ -8,7 +8,7 @@ install:
 script:
 - echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\""
   > ./core/VersionInfo.fs
-- fsharpi build.fsx -- build
+- fsharpi build.fsx -- build nuget-pack
 deploy:
   provider: script
   skip_cleanup: true
