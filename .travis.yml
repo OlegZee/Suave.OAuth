@@ -10,4 +10,4 @@ script:
 deploy:
   provider: script
   skip_cleanup: true
-  script: ls nupkg/
+  script: ls -l nupkg/
