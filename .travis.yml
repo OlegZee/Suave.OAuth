@@ -8,13 +8,8 @@ script:
 - echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\"" > ./core/VersionInfo.fs
 - fsharpi build.fsx -- build nuget-pack
 deploy:
-  provider: releases
-  api_key:
-    secure: Lgn2Hnagx7tYvO7gIVTiH/81DseqMyjAPrKczz7xoIH7BizFZPlErqukMY8sEIXAPyeTVDoZa1hh1Jm+49YeFqihubwHcdSk1YAc56Fo535CpFxLpESZ7I5T1fAFCG1ose1p/TZarrVWUTE2oaB7gnAhQBlcoUWp/xyMRnygMAI=
-  file:
-  - ./bin/Suave.OAuth.dll
-  - ./bin/Suave.OAuth.XML
-  - ./nupkg/*.nupkg
+  provider: script
+  script: fsharpi build.fsx -- nuget-push
   skip_cleanup: true
   on:
     tags: true

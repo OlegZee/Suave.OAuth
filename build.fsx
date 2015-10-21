@@ -18,6 +18,33 @@ let systemClr cmd args =
     let cmd',args' = if Xake.Env.isUnix then "mono", cmd::args else cmd,args
     in system cmd' args'
 
+let (=?) value deflt = match value with |Some v -> v |None -> deflt
+
+let nuget_exe = "packages/NuGet.CommandLine/tools/NuGet.exe"
+let DEF_VER = "0.0.1"
+
+module nuget =
+    module private impl =
+        let newline = System.Environment.NewLine
+        let wrapXml node value = sprintf "<%s>%s</%s>" node value node
+        let wrapXmlNl node (value:string) =
+            let attrs = value.Split([|newline|], System.StringSplitOptions.None) |> Seq.ofArray
+            let content = attrs |> Seq.map ((+) "  ") |> String.concat newline
+            sprintf "<%s>%s</%s>" node (newline + content + newline) node
+        let toXmlStr (node,value) = wrapXml node value
+
+    open impl
+
+    let dependencies deps =
+        "dependencies", newline
+        + (deps |> List.map (fun (s,v) -> sprintf """<dependency id="%s" version="%s" />""" s v) |> String.concat newline)
+        + newline
+
+    let metadata = List.map toXmlStr >> String.concat newline >> wrapXmlNl "metadata"
+    let files = List.map (sprintf """<file src="%s" target="lib" />""") >> String.concat newline >> wrapXmlNl "files"
+    let package = String.concat newline >> wrapXmlNl "package" >> ((+) ("<?xml version=\"1.0\"?>" + newline))
+
+
 do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "build.log"; ConLogLevel = Verbosity.Chatty } {
 
     rules [
@@ -97,60 +124,53 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
         "nuget-pack" => action {
 
             // some utility stuff
-            let newline = System.Environment.NewLine
-            let wrapXml node value = sprintf "<%s>%s</%s>" node value node
-            let wrapXmlNl node (value:string) =
-                let attrs = value.Split([|newline|], System.StringSplitOptions.None) |> Seq.ofArray
-                let content = attrs |> Seq.map ((+) "  ") |> String.concat newline
-                sprintf "<%s>%s</%s>" node (newline + content + newline) node
-            let toXmlStr (node,value) = wrapXml node value
-
-            let dependencies deps =
-                "dependencies", newline
-                + (deps |> List.map (fun (s,v) -> sprintf """<dependency id="%s" version="%s" />""" s v) |> String.concat newline)
-                + newline
                 
-            let files = ["bin/Suave.OAuth.dll"]
-            do! need files
+            let libFiles = ["bin/Suave.OAuth.dll"]
+            do! need libFiles
 
             let! ver = getEnv("VER")
-            let version = ver |> function |Some v -> v |_ -> "0.0.1"
 
-            let metadata = [
-                "id", "Suave.OAuth"
-                "version", version
-                "authors", "OlegZee"
-                "owners", "OlegZee"
-                "projectUrl", "https://github.com/OlegZee/Suave.OAuth"
-                "requireLicenseAcceptance", "false"
-                "description", "OAuth authorization WebParts for Suave WebApp framework"
-                "releaseNotes", "Google and GitHub support"
-                "copyright", sprintf "Copyright %i" System.DateTime.Now.Year
-                "tags", "Suave OAuth"
-                dependencies [
-                    "Suave", "0.32.1"
+            let nuspec =
+                nuget.package [
+                    nuget.metadata [
+                        "id", "Suave.OAuth"
+                        "version", ver =? DEF_VER
+                        "authors", "OlegZee"
+                        "owners", "OlegZee"
+                        "projectUrl", "https://github.com/OlegZee/Suave.OAuth"
+                        "requireLicenseAcceptance", "false"
+                        "description", "OAuth authorization WebParts for Suave WebApp framework"
+                        "releaseNotes", "Google and GitHub support"
+                        "copyright", sprintf "Copyright %i" System.DateTime.Now.Year
+                        "tags", "Suave OAuth"
+                        nuget.dependencies [
+                            "Suave", "0.32.1"
+                        ]
+                    ]
+                    nuget.files (libFiles |> List.map ((</>) ".."))
                 ]
-            ]
-
-            let xml_header = "<?xml version=\"1.0\"?>" + newline
-           
-            let fileContent = files |> List.map ((</>) ".." >> sprintf """<file src="%s" target="lib" />""") |> String.concat newline |> wrapXmlNl "files"
-
-            let config_data =
-                (metadata |> List.map toXmlStr |> String.concat newline |> wrapXmlNl "metadata") + fileContent
-                |> wrapXmlNl "package"
-            printfn "%s" config_data
+            //printfn "%s" nuspec
 
             let nuspec_file = "nupkg" </> "_suave.oauth.nuspec"
             do System.IO.Directory.CreateDirectory("nupkg") |> ignore
-            do System.IO.File.WriteAllText(nuspec_file, xml_header + config_data)
-            let nuget_exe = "packages/NuGet.CommandLine/tools/NuGet.exe"
+            do System.IO.File.WriteAllText(nuspec_file, nuspec)
 
             let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg" ]
             
             if exec_code <> 0 then failwith "failed to build nuget package"
         }
 
-    ]
+        "nuget-push" => action {
+
+            do! need ["nuget-pack"]
+
+            let! ver = getEnv("VER")
+            let package_name = sprintf "Suave.OAuth.%s.nupkg" (ver =? DEF_VER)
+
+            let! nuget_key = getEnv("NUGET_KEY")
+            let! exec_code = systemClr nuget_exe ["push"; "nupkg" </> package_name; nuget_key =? ""]
+            if exec_code <> 0 then failwith ""
+        }
+    ]    
 
 }
