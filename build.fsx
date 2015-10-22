@@ -42,7 +42,7 @@ module nuget =
 
     let metadata = List.map toXmlStr >> String.concat newline >> wrapXmlNl "metadata"
     let files = List.map (fun(f,t) -> (f,t) ||> sprintf """<file src="%s" target="%s" />""") >> String.concat newline >> wrapXmlNl "files"
-    let target t = List.map (fun file -> file,t)
+    let target t ff = ff |> List.map (fun file -> file,t)
     let package = String.concat newline >> wrapXmlNl "package" >> ((+) ("<?xml version=\"1.0\"?>" + newline))
 
 
