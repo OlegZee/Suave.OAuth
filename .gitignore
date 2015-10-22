@@ -197,4 +197,6 @@ FakesAssemblies/
 
 # mine specific
 .xake
+.vagrant/
 nupkg/
+_*.nuspec

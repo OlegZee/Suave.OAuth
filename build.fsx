@@ -41,11 +41,12 @@ module nuget =
         + newline
 
     let metadata = List.map toXmlStr >> String.concat newline >> wrapXmlNl "metadata"
-    let files = List.map (sprintf """<file src="%s" target="lib\net40" />""") >> String.concat newline >> wrapXmlNl "files"
+    let files = List.map (fun(f,t) -> (f,t) ||> sprintf """<file src="%s" target="%s" />""") >> String.concat newline >> wrapXmlNl "files"
+    let target t = List.map (fun file -> file,t)
     let package = String.concat newline >> wrapXmlNl "package" >> ((+) ("<?xml version=\"1.0\"?>" + newline))
 
 
-do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "build.log"; ConLogLevel = Verbosity.Diag } {
+do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "build.log"; ConLogLevel = Verbosity.Chatty } {
 
     rules [
         "all"  <== ["get-deps"; "build"; "nuget-pack"]
@@ -147,15 +148,14 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
                             "Suave", "0.32.1"
                         ]
                     ]
-                    nuget.files (libFiles |> List.map ((</>) ".."))
+                    nuget.files (libFiles |> nuget.target "lib\\net40")
                 ]
-            printfn "%s" nuspec
 
-            let nuspec_file = "nupkg" </> "_suave.oauth.nuspec"
+            let nuspec_file = "_.nuspec"
             do System.IO.Directory.CreateDirectory("nupkg") |> ignore
             do System.IO.File.WriteAllText(nuspec_file, nuspec)
 
-            let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg"; "-Verbosity"; "detailed" ]
+            let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg" ]
             
             if exec_code <> 0 then failwith "failed to build nuget package"
         }
