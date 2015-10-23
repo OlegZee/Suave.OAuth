@@ -7,7 +7,6 @@ open Suave.Http
 open Suave.Http.Successful
 open Suave.Web
 
-type ProviderType = | Google | GitHub | Facebook
 type DataEnc = | FormEncode | JsonEncode | Plain
 
 type ProviderConfig = {
@@ -27,7 +26,7 @@ let private Empty = {authorize_uri = ""; exchange_token_uri = ""; request_info_u
 /// </summary>
 let private providerConfigs =
     Map.empty
-    |> Map.add Google
+    |> Map.add "google"
         {Empty with
             authorize_uri = "https://accounts.google.com/o/oauth2/auth"
             exchange_token_uri = "https://www.googleapis.com/oauth2/v3/token"
@@ -35,13 +34,13 @@ let private providerConfigs =
             scopes = "profile"
             token_response_type = JsonEncode
             }
-    |> Map.add GitHub
+    |> Map.add "github"
         {Empty with
             authorize_uri = "https://github.com/login/oauth/authorize"
             exchange_token_uri = "https://github.com/login/oauth/access_token"
             request_info_uri = "https://api.github.com/user"
             scopes = ""}
-    |> Map.add Facebook
+    |> Map.add "facebook"
         {Empty with
             authorize_uri = "https://www.facebook.com/dialog/oauth"
             exchange_token_uri = "https://graph.facebook.com/oauth/access_token"
@@ -81,11 +80,23 @@ module internal util =
         else
             uri.ToString()
 
-let redirectAuthQuery (config:ProviderConfig) redirectUri : WebPart =
-    warbler (fun _ ->
+    let getProviderKey ctx = ctx.request.queryParam "provider" |> function
+        |Choice1Of2 code -> code.ToLowerInvariant()
+        | _ -> "google"
+
+
+let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart =
+    warbler (fun ctx ->
+        let provider_key = util.getProviderKey ctx
+        let config =
+            match configs.TryFind provider_key with
+            | None ->
+                failwith "failed to extract access token"
+                // TODO default to google?
+            | Some c -> c
 
         let parms = [
-            "redirect_uri", redirectUri
+            "redirect_uri", redirectUri + "?provider=" + provider_key
             "response_type", "code"
             "client_id", config.client_id
             "scope", config.scopes
@@ -96,15 +107,24 @@ let redirectAuthQuery (config:ProviderConfig) redirectUri : WebPart =
         Redirection.FOUND q
     )
 
-let processLogin (config: ProviderConfig) redirectUri (f_success: Map<string,obj> -> WebPart) (f_failure: string -> WebPart) : WebPart =
+let processLogin (configs: Map<string,ProviderConfig>) redirectUri (f_success: Map<string,obj> -> WebPart) (f_failure: string -> WebPart) : WebPart =
 
-    let extractToken =
-        match config.token_response_type with
-        | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
-        | FormEncode -> util.formDecode >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
-        | Plain ->      Some
+    // TODO use Uri to properly add parameter to redirectUri
 
     (fun ctx ->
+        let provider_key = util.getProviderKey ctx
+        let config =
+            match configs.TryFind provider_key with
+            | None ->
+                failwith "failed to extract access token"
+                // TODO default to google?
+            | Some c -> c
+        
+        let extractToken =
+            match config.token_response_type with
+            | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
+            | FormEncode -> util.formDecode >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
+            | Plain ->      Some
         ctx.request.queryParam "code" |> printfn "param code: %A" // TODO log
 
         match ctx.request.queryParam "code" with
@@ -114,7 +134,7 @@ let processLogin (config: ProviderConfig) redirectUri (f_success: Map<string,obj
                 "code", code
                 "client_id", config.client_id
                 "client_secret", config.client_secret
-                "redirect_uri", redirectUri
+                "redirect_uri", redirectUri + "?provider=" + provider_key
                 "grant_type", "authorization_code"
             ]
 

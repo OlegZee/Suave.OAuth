@@ -5,10 +5,13 @@
 	<h1>Main page</h1>
 	Hello there {{model.name}}!
 	<p>
-		
+
 	{% if model.logged_in == false %}
-	<a href="/oaquery" title="{{model.provider}} login">Login using {{model.provider}}</a> 
-	<a href="/login">Login</a> 
+
+	Login using: 
+	{% for p in model.providers -%}
+    | <a href="/oaquery?provider={{p}}" title="{{p}} login">{{p}}</a>
+    {% endfor -%}
 
 	{% else %}
 	<p>

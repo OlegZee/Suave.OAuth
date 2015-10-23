@@ -16,6 +16,7 @@ type AppModel =
     mutable logged_id: string
     mutable logged_in: bool
     mutable provider: string
+    mutable providers: string[]
     }
 
 module private Config =
@@ -37,22 +38,18 @@ module private Config =
 [<EntryPoint>]
 let main argv =
 
-    // Define below which provider to use for authorizing
-    let oauthProvider = ProviderType.Facebook
-    let getProviderName = function| Google -> "Google"  | GitHub -> "GitHub"  | Facebook -> "Facebook"
-
-    let model = {name = "olegz"; logged_id = ""; logged_in = false; provider = oauthProvider |> getProviderName}
+    let model = {
+        name = "olegz"; logged_id = ""; logged_in = false
+        provider = ""
+        providers = [|"Google"; "GitHub"; "Facebook" |]
+        }
 
     // Here I'm reading my personal API keys from file stored in my %HOME% folder. You will likely define you keys in code (see below).
     let ocfg = Config.readConfig ".suave.oauth.config"
 
-    let providerSettingsKey = function
-        | Google -> "Google"
-        | GitHub -> "GitHub"
-        | Facebook -> "Facebook"
-
     let oauthConfigs =
-        defineProviderConfigs (getProviderName >> fun key c ->
+        defineProviderConfigs (fun pname c ->
+            let key = pname.ToLowerInvariant()
             {c with
                 client_id = ocfg.[key].["client_id"]
                 client_secret = ocfg.[key].["client_secret"]}
@@ -61,11 +58,11 @@ let main argv =
 (*  // you will go that way more likely
     let oauthConfigs =
         defineProviderConfigs (function
-            | Google -> fun c ->
+            | "google" -> fun c ->
                 {c with
                     client_id = "<xxxxxxxxxxxxxx>"
                     client_secret = "<xxxxxxxxxxxxxx>"}
-            | GitHub -> fun c ->
+            | "github" -> fun c ->
                 {c with
                     client_id = "<xxxxxxxxxxxxxx>"
                     client_secret = "<xxxxxxxxxxxxxx>"}
@@ -88,11 +85,13 @@ let main argv =
                 Redirection.FOUND "/"
             )
 
-            path "/oaquery" >>= GET >>= OAuth.redirectAuthQuery oauthConfigs.[oauthProvider] processLoginUri
+            path "/oaquery" >>= GET >>= OAuth.redirectAuthQuery oauthConfigs processLoginUri
 
             path "/oalogin" >>= GET >>=
-                OAuth.processLogin oauthConfigs.[oauthProvider] processLoginUri
+                OAuth.processLogin oauthConfigs processLoginUri
                     (fun user_info ->
+
+                        // TODO pass unified LoginData instead
 
                         model.logged_in <- true
                         model.logged_id <- sprintf "%s (name: %A)" (user_info.["id"] |> System.Convert.ToString) (user_info.TryFind "name")
