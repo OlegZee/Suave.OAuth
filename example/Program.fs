@@ -13,8 +13,9 @@ open Suave.OAuth
 type AppModel =
     {
     mutable name: string
-    mutable logged_as: string
+    mutable logged_id: string
     mutable logged_in: bool
+    mutable provider: string
     }
 
 module private Config =
@@ -34,26 +35,27 @@ module private Config =
         |> jso (jso unbox<string>)
 
 [<EntryPoint>]
-let main argv = 
-
-    let model = {name = "olegz"; logged_as = ""; logged_in = false}
+let main argv =
 
     // Define below which provider to use for authorizing
-    let oauthProvider = ProviderType.Google
+    let oauthProvider = ProviderType.Facebook
+    let getProviderName = function| Google -> "Google"  | GitHub -> "GitHub"  | Facebook -> "Facebook"
+
+    let model = {name = "olegz"; logged_id = ""; logged_in = false; provider = oauthProvider |> getProviderName}
 
     // Here I'm reading my personal API keys from file stored in my %HOME% folder. You will likely define you keys in code (see below).
     let ocfg = Config.readConfig ".suave.oauth.config"
 
+    let providerSettingsKey = function
+        | Google -> "Google"
+        | GitHub -> "GitHub"
+        | Facebook -> "Facebook"
+
     let oauthConfigs =
-        defineProviderConfigs (function
-            | Google -> fun c ->
-                {c with
-                    client_id = ocfg.["Google"].["client_id"]
-                    client_secret = ocfg.["Google"].["client_secret"]}
-            | GitHub -> fun c ->
-                {c with
-                    client_id = ocfg.["GitHub"].["client_id"]
-                    client_secret = ocfg.["GitHub"].["client_secret"]}
+        defineProviderConfigs (getProviderName >> fun key c ->
+            {c with
+                client_id = ocfg.[key].["client_id"]
+                client_secret = ocfg.[key].["client_secret"]}
         )
 
 (*  // you will go that way more likely
@@ -76,16 +78,13 @@ let main argv =
     let app =
         choose [
             path "/" >>= page "main.html" model
-            
-            path "/login" >>= GET >>= warbler (fun _ ->
-                model.logged_as <- "olegzee"
-                model.logged_in <- true
-                Redirection.FOUND "/"
-            )
 
             path "/logout" >>= GET >>= warbler (fun _ ->
-                model.logged_as <- ""
+
+                // custom logout logic goes here
+                model.logged_id <- ""
                 model.logged_in <- false
+
                 Redirection.FOUND "/"
             )
 
@@ -94,13 +93,14 @@ let main argv =
             path "/oalogin" >>= GET >>=
                 OAuth.processLogin oauthConfigs.[oauthProvider] processLoginUri
                     (fun user_info ->
+
                         model.logged_in <- true
-                        model.logged_as <- (user_info.["email"] |> unbox<string>, user_info.["id"].ToString()) ||> sprintf "%s (id:%s)"
+                        model.logged_id <- sprintf "%s (name: %A)" (user_info.["id"] |> System.Convert.ToString) (user_info.TryFind "name")
 
                         Redirection.FOUND "/"
                     )
                     (fun error -> OK "Authorization failed")
-            
+
             (OK "Hello World!")
         ]
 

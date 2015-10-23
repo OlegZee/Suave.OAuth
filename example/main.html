@@ -7,12 +7,12 @@
 	<p>
 		
 	{% if model.logged_in == false %}
-	<a href="/oaquery" title="Google login">Login via google</a> 
+	<a href="/oaquery" title="{{model.provider}} login">Login using {{model.provider}}</a> 
 	<a href="/login">Login</a> 
 
 	{% else %}
 	<p>
-	You are logged on as: {{model.logged_as}}
+	You are logged on as a user with id: {{model.logged_id}}
 	<a href="/logout">Logout</a>
 
 	{% endif %}

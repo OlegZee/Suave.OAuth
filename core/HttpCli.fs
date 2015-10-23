@@ -8,9 +8,7 @@ let post (url : string) (data : byte []) =
         let request = WebRequest.Create(url) :?> HttpWebRequest
         request.Method <- "POST"
         request.ContentType <- "application/x-www-form-urlencoded"
-        request.Accept <- "application/json"
         request.ContentLength <- int64 data.Length
-        // do headers |> List.iter (fun (k,v) -> request.Headers.Add (k,v))
 
         use stream = request.GetRequestStream()
         stream.Write(data, 0, data.Length)
