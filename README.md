@@ -10,8 +10,15 @@ Currently supports google, facebook and github providers. More providers to go a
 
 The following code assumes you are adding google authorization support.
 
-### Requesting client_id and client_secret from google
-First you have to obtain so called client_id and client_secret keys from all providers you will support in your application.
+### Add nuget package
+
+Run the following command in Package Manager Console:
+
+    PM> Install-Package Suave.OAuth
+
+### Requesting client_id and client_secret from OAuth providers
+
+Obtain so called client_id and client_secret keys from all providers you are going to support in your application.
 E.g for google head to [manage projects](https://console.developers.google.com/project) page, create a new project, navigate
 to `Credentials` page, click `Add credentials` and choose `OAuth 2.0 client ID`. Choose `other` and you can skip
 specifying redundant info.
@@ -25,6 +32,10 @@ open Suave.OAuth
 let oauthConfigs =
     defineProviderConfigs (function
         | "google" -> fun c ->
+            {c with
+                client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+                client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
+        | "facebook" -> fun c ->
             {c with
                 client_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
                 client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
