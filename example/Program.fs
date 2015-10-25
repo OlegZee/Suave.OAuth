@@ -89,16 +89,14 @@ let main argv =
 
             path "/oalogin" >>= GET >>=
                 OAuth.processLogin oauthConfigs processLoginUri
-                    (fun user_info ->
-
-                        // TODO pass unified LoginData instead
+                    (fun loginData ->
 
                         model.logged_in <- true
-                        model.logged_id <- sprintf "%s (name: %A)" (user_info.["id"] |> System.Convert.ToString) (user_info.TryFind "name")
+                        model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
 
                         Redirection.FOUND "/"
                     )
-                    (fun error -> OK "Authorization failed")
+                    (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
 
             (OK "Hello World!")
         ]

@@ -19,6 +19,14 @@ type ProviderConfig = {
     token_response_type: DataEnc
 }
 
+exception private OAuthException of string
+
+/// <summary>
+/// Result type for successive login callback.
+/// </summary>
+type LoginData = {Id: string; Name: string; AccessToken: string; ProviderData: Map<string,obj>}
+type FailureData = {Code: int; Message: string; Info: obj}
+
 let private Empty = {authorize_uri = ""; exchange_token_uri = ""; request_info_uri = ""; client_id = ""; client_secret = ""; scopes = ""; token_response_type = FormEncode}
 
 /// <summary>
@@ -80,20 +88,79 @@ module internal util =
         else
             uri.ToString()
 
-    let getProviderKey ctx = ctx.request.queryParam "provider" |> function
-        |Choice1Of2 code -> code.ToLowerInvariant()
-        | _ -> "google"
+module private impl =
+
+    let get_config ctx (configs: Map<string,ProviderConfig>) =
+
+        let provider_key =
+            match ctx.request.queryParam "provider" with
+            |Choice1Of2 code -> code.ToLowerInvariant()
+            | _ -> "google"
+
+        match configs.TryFind provider_key with
+        | None -> raise (OAuthException "bad provider key in query")
+        | Some c -> provider_key, c
 
 
+    let login (configs: Map<string,ProviderConfig>) redirectUri (f_success: LoginData -> WebPart) : WebPart =
+
+        // TODO use Uri to properly add parameter to redirectUri
+
+        (fun ctx ->
+            let provider_key,config = configs |> get_config ctx
+        
+            let extractToken =
+                match config.token_response_type with
+                | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
+                | FormEncode -> util.formDecode >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
+                | Plain ->      Some
+            ctx.request.queryParam "code" |> printfn "param code: %A" // TODO log
+
+            match ctx.request.queryParam "code" with
+            | Choice2Of2 _ ->
+                raise (OAuthException "server did not return access code")
+            | Choice1Of2 code ->
+
+                let parms = [
+                    "code", code
+                    "client_id", config.client_id
+                    "client_secret", config.client_secret
+                    "redirect_uri", redirectUri + "?provider=" + provider_key
+                    "grant_type", "authorization_code"
+                ]
+
+                async {
+                    let! response = parms |> util.formEncode |> util.asciiEncode |> HttpCli.post config.exchange_token_uri
+                    response |> printfn "Auth response is %A"        // TODO log
+
+                    let access_token = response |> extractToken
+
+                    if Option.isNone access_token then
+                        raise (OAuthException "failed to extract access token")
+
+                    let uri = config.request_info_uri + "?" + (["access_token", Option.get access_token] |> util.formEncode)
+                    let! response = HttpCli.get uri
+                    response |> printfn "/user response %A"        // TODO log
+
+                    let user_info:Map<string,obj> = response |> util.parseJsObj
+                    user_info |> printfn "/user_info response %A"  // TODO log
+
+                    let user_id = user_info.["id"] |> System.Convert.ToString
+                    let user_name = user_info.["name"] |> System.Convert.ToString
+
+                    return! f_success {Id = user_id; Name = user_name; AccessToken = Option.get access_token; ProviderData = user_info} ctx
+                }
+        )
+
+/// <summary>
+/// Login action handler.
+/// </summary>
+/// <param name="configs"></param>
+/// <param name="redirectUri"></param>
 let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart =
     warbler (fun ctx ->
-        let provider_key = util.getProviderKey ctx
-        let config =
-            match configs.TryFind provider_key with
-            | None ->
-                failwith "failed to extract access token"
-                // TODO default to google?
-            | Some c -> c
+
+        let provider_key,config = configs |> impl.get_config ctx
 
         let parms = [
             "redirect_uri", redirectUri + "?provider=" + provider_key
@@ -103,65 +170,23 @@ let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart
             ]
 
         let q = config.authorize_uri + "?" + (parms |> util.formEncode)
-        printfn "sending request to a google: %A" q     // TODO convert to a log record
+        printfn "sending request: %A" q     // TODO convert to a log record
         Redirection.FOUND q
     )
 
-let processLogin (configs: Map<string,ProviderConfig>) redirectUri (f_success: Map<string,obj> -> WebPart) (f_failure: string -> WebPart) : WebPart =
+/// <summary>
+/// OAuth login provider handler.
+/// </summary>
+/// <param name="configs"></param>
+/// <param name="redirectUri"></param>
+/// <param name="f_success"></param>
+/// <param name="f_failure"></param>
+let processLogin (configs: Map<string,ProviderConfig>) redirectUri (f_success: LoginData -> WebPart) (f_failure: FailureData -> WebPart) : WebPart =
 
-    // TODO use Uri to properly add parameter to redirectUri
-
-    (fun ctx ->
-        let provider_key = util.getProviderKey ctx
-        let config =
-            match configs.TryFind provider_key with
-            | None ->
-                failwith "failed to extract access token"
-                // TODO default to google?
-            | Some c -> c
-        
-        let extractToken =
-            match config.token_response_type with
-            | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
-            | FormEncode -> util.formDecode >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
-            | Plain ->      Some
-        ctx.request.queryParam "code" |> printfn "param code: %A" // TODO log
-
-        match ctx.request.queryParam "code" with
-        | Choice1Of2 code ->
-
-            let parms = [
-                "code", code
-                "client_id", config.client_id
-                "client_secret", config.client_secret
-                "redirect_uri", redirectUri + "?provider=" + provider_key
-                "grant_type", "authorization_code"
-            ]
-
-            async {
-                let! response = parms |> util.formEncode |> util.asciiEncode |> HttpCli.post config.exchange_token_uri
-                response |> printfn "Auth response is %A"        // TODO log
-
-                return!
-                  response |> extractToken
-                  |> function
-                    | None ->
-                        f_failure "failed to extract access token"
-                    | Some access_token ->
-                        let uri = config.request_info_uri + "?" + (["access_token", access_token] |> util.formEncode)
-                        fun ctx -> async {
-                            let! response = HttpCli.get uri
-                            response |> printfn "/user response %A"        // TODO log
-
-                            let user_info:Map<string,obj> = response |> util.parseJsObj
-                            user_info |> printfn "/user_info response %A"  // TODO log
-
-                            return! f_success user_info ctx
-                        }
-                    <| ctx
-            }
-        | _ ->
-            async {
-                return! f_failure "" ctx
-            }
-    )
+    fun ctx ->
+        async {
+            try return! impl.login configs redirectUri f_success ctx
+            with
+                | OAuthException e -> return! f_failure {FailureData.Code = 1; Message = e; Info = e} ctx
+                | e -> return! f_failure {FailureData.Code = 1; Message = e.Message; Info = e} ctx
+        }
