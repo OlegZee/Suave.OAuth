@@ -77,7 +77,27 @@ You should bind your application session to user id (passed in loginData paramet
 loginData contains access_token generated for your oauth provider session. However library does not support this key renewal (e.g. Google's one
 expires in one hour). Anyway whenever you want to extract more data from provider you should do it right after login.
 
-While defining configs you could define provider specific 'scopes' so that you can request more specific info from provider.
+## Customizing queries
+While defining configs you could define:
+
+* provider specific **'scopes'** so that you can request more specific info from provider
+* **customize_req**: allows to define specific headers or proxy settings for http webrequest instance
+
+You could also define oauth2 provider not in list:
+```fsharp
+    let oauthConfigs =
+        defineProviderConfigs (
+            ...
+        )
+        // the following code adds "yandex" provider (for demo purposes)
+        |> Map.add "yandex"
+            {OAuth.EmptyConfig with
+                authorize_uri = "https://oauth.yandex.ru/authorize"
+                exchange_token_uri = "https://oauth.yandex.ru/token"
+                request_info_uri = "https://login.yandex.ru/info"
+                scopes = ""
+                client_id = "xxxxxxxx"; client_secret = "dddddddd"}
+```
 
 # References
 

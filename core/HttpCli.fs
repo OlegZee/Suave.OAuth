@@ -3,30 +3,32 @@
 open System.IO
 open System.Net
 
-let post (url : string) (data : byte []) = 
+type DefineRequest = HttpWebRequest -> unit
+
+let send (url : string) meth (define : DefineRequest) = 
     async { 
         let request = WebRequest.Create(url) :?> HttpWebRequest
-        request.Method <- "POST"
+        request.Method <- meth
+        request.UserAgent <- "suave app"    // this line is required for github auth
+
+        do define request
+
+        use! response = request.AsyncGetResponse()
+        let stream = response.GetResponseStream()
+        use reader = new StreamReader(stream)
+        return reader.ReadToEnd()
+    }
+
+let post (url : string) (define : DefineRequest) (data : byte []) = 
+    send url "POST"
+        (fun request ->
         request.ContentType <- "application/x-www-form-urlencoded"
         request.ContentLength <- int64 data.Length
 
         use stream = request.GetRequestStream()
         stream.Write(data, 0, data.Length)
         stream.Close()
-        use! response = request.AsyncGetResponse()
-        let stream = response.GetResponseStream()
-        use reader = new StreamReader(stream)
-        return reader.ReadToEnd()
-    }
 
-let get (url : string) = 
-    async { 
-        let request = WebRequest.Create(url) :?> HttpWebRequest
+        do define request)
 
-        request.UserAgent <- "suave app"    // this line is required for github auth
-
-        use! response = request.AsyncGetResponse()
-        let stream = response.GetResponseStream()
-        use reader = new StreamReader(stream)
-        return reader.ReadToEnd()
-    }
+let get (url : string) = send url "GET"

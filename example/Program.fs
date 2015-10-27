@@ -54,6 +54,14 @@ let main argv =
                 client_id = ocfg.[key].["client_id"]
                 client_secret = ocfg.[key].["client_secret"]}
         )
+        // the following code adds "yandex" provider (for demo purposes)
+        |> Map.add "yandex"
+            {OAuth.EmptyConfig with
+                authorize_uri = "https://oauth.yandex.ru/authorize"
+                exchange_token_uri = "https://oauth.yandex.ru/token"
+                request_info_uri = "https://login.yandex.ru/info"
+                scopes = ""
+                client_id = "xxxxxxxx"; client_secret = "dddddddd"}
 
 (*  // you will go that way more likely
     let oauthConfigs =

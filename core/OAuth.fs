@@ -17,6 +17,7 @@ type ProviderConfig = {
     request_info_uri: string
     scopes: string
     token_response_type: DataEnc
+    customize_req: System.Net.HttpWebRequest -> unit
 }
 
 exception private OAuthException of string
@@ -27,7 +28,9 @@ exception private OAuthException of string
 type LoginData = {Id: string; Name: string; AccessToken: string; ProviderData: Map<string,obj>}
 type FailureData = {Code: int; Message: string; Info: obj}
 
-let private Empty = {authorize_uri = ""; exchange_token_uri = ""; request_info_uri = ""; client_id = ""; client_secret = ""; scopes = ""; token_response_type = FormEncode}
+let EmptyConfig =
+    {authorize_uri = ""; exchange_token_uri = ""; request_info_uri = ""; client_id = ""; client_secret = "";
+    scopes = ""; token_response_type = FormEncode; customize_req = ignore}
 
 /// <summary>
 /// Default (incomplete) oauth provider settings.
@@ -35,7 +38,7 @@ let private Empty = {authorize_uri = ""; exchange_token_uri = ""; request_info_u
 let private providerConfigs =
     Map.empty
     |> Map.add "google"
-        {Empty with
+        {EmptyConfig with
             authorize_uri = "https://accounts.google.com/o/oauth2/auth"
             exchange_token_uri = "https://www.googleapis.com/oauth2/v3/token"
             request_info_uri = "https://www.googleapis.com/oauth2/v1/userinfo"
@@ -43,13 +46,13 @@ let private providerConfigs =
             token_response_type = JsonEncode
             }
     |> Map.add "github"
-        {Empty with
+        {EmptyConfig with
             authorize_uri = "https://github.com/login/oauth/authorize"
             exchange_token_uri = "https://github.com/login/oauth/access_token"
             request_info_uri = "https://api.github.com/user"
             scopes = ""}
     |> Map.add "facebook"
-        {Empty with
+        {EmptyConfig with
             authorize_uri = "https://www.facebook.com/dialog/oauth"
             exchange_token_uri = "https://graph.facebook.com/oauth/access_token"
             request_info_uri = "https://graph.facebook.com/me"
@@ -130,7 +133,7 @@ module private impl =
                 ]
 
                 async {
-                    let! response = parms |> util.formEncode |> util.asciiEncode |> HttpCli.post config.exchange_token_uri
+                    let! response = parms |> util.formEncode |> util.asciiEncode |> HttpCli.post config.exchange_token_uri config.customize_req
                     response |> printfn "Auth response is %A"        // TODO log
 
                     let access_token = response |> extractToken
@@ -139,7 +142,7 @@ module private impl =
                         raise (OAuthException "failed to extract access token")
 
                     let uri = config.request_info_uri + "?" + (["access_token", Option.get access_token] |> util.formEncode)
-                    let! response = HttpCli.get uri
+                    let! response = HttpCli.get uri config.customize_req
                     response |> printfn "/user response %A"        // TODO log
 
                     let user_info:Map<string,obj> = response |> util.parseJsObj
