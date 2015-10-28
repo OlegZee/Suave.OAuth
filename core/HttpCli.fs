@@ -25,10 +25,12 @@ let post (url : string) (define : DefineRequest) (data : byte []) =
         request.ContentType <- "application/x-www-form-urlencoded"
         request.ContentLength <- int64 data.Length
 
+        do define request
+        
         use stream = request.GetRequestStream()
         stream.Write(data, 0, data.Length)
         stream.Close()
 
-        do define request)
+)
 
 let get (url : string) = send url "GET"
