@@ -25,7 +25,7 @@ exception private OAuthException of string
 /// <summary>
 /// Result type for successive login callback.
 /// </summary>
-type LoginData = {Id: string; Name: string; AccessToken: string; ProviderData: Map<string,obj>}
+type LoginData = {ProviderName: string; Id: string; Name: string; AccessToken: string; ProviderData: Map<string,obj>}
 type FailureData = {Code: int; Message: string; Info: obj}
 
 let EmptyConfig =
@@ -111,7 +111,7 @@ module private impl =
 
         (fun ctx ->
             let provider_key,config = configs |> get_config ctx
-        
+
             let extractToken =
                 match config.token_response_type with
                 | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
@@ -151,7 +151,7 @@ module private impl =
                     let user_id = user_info.["id"] |> System.Convert.ToString
                     let user_name = user_info.["name"] |> System.Convert.ToString
 
-                    return! f_success {Id = user_id; Name = user_name; AccessToken = Option.get access_token; ProviderData = user_info} ctx
+                    return! f_success {ProviderName = provider_key; Id = user_id; Name = user_name; AccessToken = Option.get access_token; ProviderData = user_info} ctx
                 }
         )
 
