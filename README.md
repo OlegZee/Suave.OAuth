@@ -46,9 +46,9 @@ let processLoginUri = "http://localhost:8083/oalogin"
 
 Next step is defining two routes as follows:
 ```fsharp
-    path "/oaquery" >>= GET >>= redirectAuthQuery oauthConfigs processLoginUri
+    path "/oaquery" >=> GET >=> redirectAuthQuery oauthConfigs processLoginUri
 
-    path "/oalogin" >>= GET >>=
+    path "/oalogin" >=> GET >=>
         processLogin oauthConfigs processLoginUri
             (fun loginData ->
                 // user is authorized and you will likely initialize user session (see Suave.Auth for `authenticated` and such)
@@ -66,7 +66,7 @@ Notice the `processLoginUri` is passed around and it should match the path for s
 as indicated in code above.
 
 ### Add login button
- 
+
 Just add one or more button such as "Login via Google" link pointing to "/oalogin?provider=google" endpoint defined above.
 Providers supported so far are: 'google', 'github', 'facebook'.
 
