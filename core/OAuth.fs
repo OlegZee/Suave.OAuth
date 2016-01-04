@@ -1,10 +1,8 @@
 ﻿module Suave.OAuth
 
 open Suave
-open Suave.Types
-open Suave.Http.Applicatives
-open Suave.Http
-open Suave.Http.Successful
+open Suave.Filters
+open Suave.Successful
 open Suave.Web
 
 type DataEnc = | FormEncode | JsonEncode | Plain
@@ -151,7 +149,10 @@ module private impl =
                     let user_id = user_info.["id"] |> System.Convert.ToString
                     let user_name = user_info.["name"] |> System.Convert.ToString
 
-                    return! f_success {ProviderName = provider_key; Id = user_id; Name = user_name; AccessToken = Option.get access_token; ProviderData = user_info} ctx
+                    return! f_success
+                        { ProviderName = provider_key;
+                          Id = user_id; Name = user_name; AccessToken = Option.get access_token;
+                          ProviderData = user_info} ctx
                 }
         )
 

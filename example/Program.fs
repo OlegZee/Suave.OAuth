@@ -2,9 +2,9 @@
 // See the 'F# Tutorial' project for more help.
 
 open Suave
-open Suave.Http.Applicatives
-open Suave.Http
-open Suave.Http.Successful
+open Suave.Operators
+open Suave.Filters
+open Suave.Successful
 open Suave.Web
 open Suave.DotLiquid
 
@@ -82,9 +82,9 @@ let main argv =
 
     let app =
         choose [
-            path "/" >>= page "main.html" model
+            path "/" >=> page "main.html" model
 
-            path "/logout" >>= GET >>= warbler (fun _ ->
+            path "/logout" >=> GET >=> warbler (fun _ ->
 
                 // custom logout logic goes here
                 model.logged_id <- ""
@@ -93,9 +93,9 @@ let main argv =
                 Redirection.FOUND "/"
             )
 
-            path "/oaquery" >>= GET >>= OAuth.redirectAuthQuery oauthConfigs processLoginUri
+            path "/oaquery" >=> GET >=> OAuth.redirectAuthQuery oauthConfigs processLoginUri
 
-            path "/oalogin" >>= GET >>=
+            path "/oalogin" >=> GET >=>
                 OAuth.processLogin oauthConfigs processLoginUri
                     (fun loginData ->
 

@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D10B0109-5417-4EB5-B56C-E89C3EA79AC0}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		..\..\Users\olegz\.suave.oauth.config = ..\..\Users\olegz\.suave.oauth.config
 		.travis.yml = .travis.yml
 		build.fsx = build.fsx
 		README.md = README.md

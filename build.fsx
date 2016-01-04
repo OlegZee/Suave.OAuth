@@ -74,7 +74,9 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
         }
         ("bin/Suave.DotLiquid.dll") *> fun outfile -> action {
             do! copyFile "packages/Suave.DotLiquid/lib/net40/Suave.DotLiquid.dll" outfile.FullName
+            do! copyFiles ["packages/DotLiquid/lib/NET40/DotLiquid.dll"] "bin"
         }
+        
         ("bin/main.html") *> fun outfile -> action {
             do! copyFile "example/main.html" outfile.FullName
         }
@@ -125,7 +127,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
         "nuget-pack" => action {
 
             // some utility stuff
-                
+
             let libFiles = ["bin/Suave.OAuth.dll"]
             do! need libFiles
 
@@ -156,7 +158,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
             do System.IO.File.WriteAllText(nuspec_file, nuspec)
 
             let! exec_code = systemClr nuget_exe ["pack"; nuspec_file; "-OutputDirectory"; "nupkg" ]
-            
+
             if exec_code <> 0 then failwith "failed to build nuget package"
         }
 
@@ -171,6 +173,6 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
             let! exec_code = systemClr nuget_exe ["push"; "nupkg" </> package_name; nuget_key =? ""]
             if exec_code <> 0 then failwith ""
         }
-    ]    
+    ]
 
 }
