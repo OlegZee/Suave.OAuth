@@ -76,7 +76,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
             do! copyFile "packages/Suave.DotLiquid/lib/net40/Suave.DotLiquid.dll" outfile.FullName
             do! copyFiles ["packages/DotLiquid/lib/NET40/DotLiquid.dll"] "bin"
         }
-        
+
         ("bin/main.html") *> fun outfile -> action {
             do! copyFile "example/main.html" outfile.FullName
         }
@@ -147,7 +147,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.0"]; FileLog = "bui
                         "copyright", sprintf "Copyright %i" System.DateTime.Now.Year
                         "tags", "Suave OAuth"
                         nuget.dependencies [
-                            "Suave", "0.32.1"
+                            "Suave", "1.0.0"
                         ]
                     ]
                     nuget.files (libFiles |> nuget.target "lib\\net40")
