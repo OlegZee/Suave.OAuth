@@ -77,35 +77,34 @@ let main argv =
             | _ -> id    // this application does not define secret keys for other oauth providers
         )
 *)
-
-    let processLoginUri = "http://localhost:8083/oalogin"
-
     let app =
         choose [
             path "/" >=> page "main.html" model
 
-            path "/logout" >=> GET >=> warbler (fun _ ->
+            OAuth.authorize oauthConfigs
+                (fun loginData ->
 
-                // custom logout logic goes here
-                model.logged_id <- ""
-                model.logged_in <- false
+                    model.logged_in <- true
+                    model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
 
-                Redirection.FOUND "/"
-            )
+                    Redirection.FOUND "/"
+                )
+                (fun () ->
 
-            path "/oaquery" >=> GET >=> OAuth.redirectAuthQuery oauthConfigs processLoginUri
+                    model.logged_id <- ""
+                    model.logged_in <- false
 
-            path "/oalogin" >=> GET >=>
-                OAuth.processLogin oauthConfigs processLoginUri
-                    (fun loginData ->
+                    Redirection.FOUND "/"
+                )
+                (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
 
-                        model.logged_in <- true
-                        model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
+            OAuth.protectedPart
+                (choose [
+                    path "/protected" >=> GET >=> OK "You've accessed protected part!"
+                ])
+                (RequestErrors.FORBIDDEN "You do not have access to that application part (/protected)")
 
-                        Redirection.FOUND "/"
-                    )
-                    (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
-
+            // we'll never get here
             (OK "Hello World!")
         ]
 

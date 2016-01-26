@@ -41,29 +41,41 @@ let oauthConfigs =
                 client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
         | _ -> id   // we do not provide secret keys for other oauth providers
     )
-let processLoginUri = "http://localhost:8083/oalogin"
 ```
 
-Next step is defining two routes as follows:
+Finally add authorization handle to your application:
 ```fsharp
-    path "/oaquery" >=> GET >=> redirectAuthQuery oauthConfigs processLoginUri
+OAuth.authorize oauthConfigs
+    (fun loginData ->
 
-    path "/oalogin" >=> GET >=>
-        processLogin oauthConfigs processLoginUri
-            (fun loginData ->
-                // user is authorized and you will likely initialize user session (see Suave.Auth for `authenticated` and such)
-                model.logged_in <- true
-                model.user_id <- loginData.Id
-                model.logged_as <- loginData.Name
+        model.logged_in <- true
+        model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
 
-                // redirect user to application page
-                Redirection.FOUND "/"
-            )
-            (fun error -> OK <| sprintf "Authorization failed because of `%s`" error)
+        Redirection.FOUND "/"
+    )
+    (fun () ->
+
+        model.logged_id <- ""
+        model.logged_in <- false
+
+        Redirection.FOUND "/"
+    )
+    (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
+
+OAuth.protectedPart
+    (choose [
+        path "/protected" >=> GET >=> OK "You've accessed protected part!"
+    ])
+    (RequestErrors.FORBIDDEN "You do not have access to that application part (/protected)")
 ```
 
-Notice the `processLoginUri` is passed around and it should match the path for second route above. You have to provide your own session management code
-as indicated in code above.
+The `authorize` WebPart handles three queries:
+
+  * /oaquery - redirects to oauth provider page
+  * /oalogin - processes authorization reply from provider, stores authorization token in session cookie
+  * /logout - clears the cookie that keeps stored authorization token
+
+The `authorize` WebPart and `protectedPart` counterpart store/read the authorization token in session cookie. Use low-level `OAuth.redirectAuthQuery` and `OAuth.processLogin` methods to override described  behavior.
 
 ### Add login button
 

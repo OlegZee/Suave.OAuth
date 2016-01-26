@@ -1,6 +1,8 @@
 ﻿module Suave.OAuth
 
 open Suave
+open Suave.Cookie
+open Suave.Operators
 open Suave.Filters
 open Suave.Successful
 open Suave.Web
@@ -157,7 +159,7 @@ module private impl =
         )
 
 /// <summary>
-/// Login action handler.
+/// Login action handler (low-level API).
 /// </summary>
 /// <param name="configs"></param>
 /// <param name="redirectUri"></param>
@@ -179,7 +181,7 @@ let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart
     )
 
 /// <summary>
-/// OAuth login provider handler.
+/// OAuth login provider handler (low-level API).
 /// </summary>
 /// <param name="configs"></param>
 /// <param name="redirectUri"></param>
@@ -194,3 +196,49 @@ let processLogin (configs: Map<string,ProviderConfig>) redirectUri (f_success: L
                 | OAuthException e -> return! f_failure {FailureData.Code = 1; Message = e; Info = e} ctx
                 | e -> return! f_failure {FailureData.Code = 1; Message = e.Message; Info = e} ctx
         }
+
+/// <summary>
+/// Handles OAuth authorization requests. Stores auth info in session cookie
+/// </summary>
+/// <param name="configs"></param>
+/// <param name="f_login">Store login data and provide continuation webpart</param>
+/// <param name="f_logout">Handle logout request and provide continuation webpart</param>
+/// <param name="f_failure"></param>
+let authorize configs f_login f_logout f_failure =
+
+    // pretty much way to build server root URI preserving the original user query
+    let getLoginUrl (ctx:HttpContext) =
+        let bb = new System.UriBuilder (ctx.request.url)
+        bb.Host <- ctx.request.host
+        bb.Path <- "oalogin"
+        bb.Query <- ""
+
+        bb.ToString()
+        
+    choose [
+        path "/oaquery" >=> GET >=> context(fun ctx -> redirectAuthQuery configs (getLoginUrl ctx))
+
+        path "/logout" >=> GET >=> 
+            context(fun ctx ->
+                let cont = f_logout()
+                unsetPair Authentication.SessionAuthCookie >=> unsetPair Suave.State.CookieStateStore.StateCookie >=> cont
+            )
+        path "/oalogin" >=> GET >=>
+            context(fun ctx ->
+                processLogin configs (getLoginUrl ctx)
+                    (f_login >> (fun wpb -> Authentication.authenticated Cookie.CookieLife.Session false >=> wpb))
+                    f_failure
+                )
+    ]
+
+/// <summary>
+/// Utility handler which verifies if current user is authenticated using session cookie.
+/// </summary>
+/// <param name="configs"></param>
+/// <param name="protectedApi"></param>
+/// <param name="f_failure"></param>
+let protectedPart protectedApi f_failure:WebPart =
+    Authentication.authenticate Cookie.CookieLife.Session false
+        (fun () -> Choice2Of2 f_failure)
+        (fun _ ->  Choice2Of2 f_failure)
+        protectedApi
