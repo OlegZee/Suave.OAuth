@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-fsi build.fsx -- all
+fsharpi build.fsx -- all
