@@ -9,7 +9,7 @@ script:
 - fsharpi build.fsx -- build nuget-pack
 deploy:
   provider: script
-  script: fsharpi build.fsx -- nuget-push
+  script: fsharpi build.fsx -- -ll Diag nuget-push
   skip_cleanup: true
   on:
     tags: true
