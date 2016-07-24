@@ -170,7 +170,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
             let package_name = sprintf "Suave.OAuth.%s.nupkg" (ver =? DEF_VER)
 
             let! nuget_key = getEnv("NUGET_KEY")
-            let! exec_code = systemClr nuget_exe ["push"; "nupkg" </> package_name; nuget_key =? ""]
+            let! exec_code = systemClr nuget_exe ["push"; "nupkg" </> package_name; nuget_key =? ""; "-Source"; "nuget.org"]
             if exec_code <> 0 then failwith ""
         }
     ]
