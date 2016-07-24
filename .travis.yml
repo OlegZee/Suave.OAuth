@@ -6,7 +6,7 @@ install:
 - mono .paket/paket.exe install
 script:
 - echo "module internal Suave.Const [<Literal>]  let internal Version = \"$VER.$TRAVIS_BUILD_NUMBER\"" > ./core/VersionInfo.fs
-- fsharpi build.fsx -- build nuget-pack
+- fsharpi build.fsx -- -ll Diag build nuget-pack
 deploy:
   provider: script
   script: fsharpi build.fsx -- nuget-push
