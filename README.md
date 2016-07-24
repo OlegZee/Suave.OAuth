@@ -41,11 +41,13 @@ let oauthConfigs =
                 client_secret = "yyyyyyyyyyyyyyyyyyyyyyy"}
         | _ -> id   // we do not provide secret keys for other oauth providers
     )
+
+
 ```
 
 Finally add authorization handle to your application:
 ```fsharp
-OAuth.authorize oauthConfigs
+OAuth.authorize authRedirectUri oauthConfigs
     (fun loginData ->
 
         model.logged_in <- true
@@ -77,6 +79,8 @@ The `authorize` WebPart handles three queries:
 
 The `authorize` WebPart and `protectedPart` counterpart store/read the authorization token in session cookie. Use low-level `OAuth.redirectAuthQuery` and `OAuth.processLogin` methods to override described  behavior.
 
+> Note: you have to provide `authRedirectUri` which for example application will point to http://localhost:8083/oalogin.
+
 ### Add login button
 
 Just add one or more button such as "Login via Google" link pointing to "/oalogin?provider=google" endpoint defined above.
@@ -88,6 +92,10 @@ You should bind your application session to user id (passed in loginData paramet
 
 loginData contains access_token generated for your oauth provider session. However library does not support this key renewal (e.g. Google's one
 expires in one hour). Anyway whenever you want to extract more data from provider you should do it right after login.
+
+### API change in 0.7.0
+The signature of authorize function was changed in 0.7.x, now it expects you will provide authorization redirect url. In prior version the attempt to build it authomatically
+was made which is however impossible in general case such as using server proxy or docker.
 
 ## Customizing queries
 While defining configs you could define:

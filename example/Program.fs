@@ -81,22 +81,27 @@ let main argv =
         choose [
             path "/" >=> page "main.html" model
 
-            OAuth.authorize oauthConfigs
-                (fun loginData ->
+            warbler(fun ctx ->
+                let authorizeRedirectUri = buildLoginUrl ctx in
+                // Note: logon state for current user is stored in global variable, which is ok for demo purposes.
+                // in your application you shoud store such kind of data to session data
+                OAuth.authorize authorizeRedirectUri oauthConfigs
+                    (fun loginData ->
 
-                    model.logged_in <- true
-                    model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
+                        model.logged_in <- true
+                        model.logged_id <- sprintf "%s (name: %s)" loginData.Id loginData.Name
 
-                    Redirection.FOUND "/"
+                        Redirection.FOUND "/"
+                    )
+                    (fun () ->
+
+                        model.logged_id <- ""
+                        model.logged_in <- false
+
+                        Redirection.FOUND "/"
+                    )
+                    (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
                 )
-                (fun () ->
-
-                    model.logged_id <- ""
-                    model.logged_in <- false
-
-                    Redirection.FOUND "/"
-                )
-                (fun error -> OK <| sprintf "Authorization failed because of `%s`" error.Message)
 
             OAuth.protectedPart
                 (choose [

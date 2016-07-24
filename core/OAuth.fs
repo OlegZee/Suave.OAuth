@@ -93,7 +93,7 @@ module internal util =
 
 module private impl =
 
-    let get_config ctx (configs: Map<string,ProviderConfig>) =
+    let getConfig ctx (configs: Map<string,ProviderConfig>) =
 
         let provider_key =
             match ctx.request.queryParam "provider" with
@@ -105,12 +105,12 @@ module private impl =
         | Some c -> provider_key, c
 
 
-    let login (configs: Map<string,ProviderConfig>) redirectUri (f_success: LoginData -> WebPart) : WebPart =
+    let login (configs: Map<string,ProviderConfig>) redirectUri (fnSuccess: LoginData -> WebPart) : WebPart =
 
         // TODO use Uri to properly add parameter to redirectUri
 
         (fun ctx ->
-            let provider_key,config = configs |> get_config ctx
+            let provider_key,config = configs |> getConfig ctx
 
             let extractToken =
                 match config.token_response_type with
@@ -151,7 +151,7 @@ module private impl =
                     let user_id = user_info.["id"] |> System.Convert.ToString
                     let user_name = user_info.["name"] |> System.Convert.ToString
 
-                    return! f_success
+                    return! fnSuccess
                         { ProviderName = provider_key;
                           Id = user_id; Name = user_name; AccessToken = Option.get access_token;
                           ProviderData = user_info} ctx
@@ -166,7 +166,7 @@ module private impl =
 let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart =
     warbler (fun ctx ->
 
-        let provider_key,config = configs |> impl.get_config ctx
+        let provider_key,config = configs |> impl.getConfig ctx
 
         let parms = [
             "redirect_uri", redirectUri + "?provider=" + provider_key
@@ -187,47 +187,51 @@ let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart
 /// <param name="redirectUri"></param>
 /// <param name="f_success"></param>
 /// <param name="f_failure"></param>
-let processLogin (configs: Map<string,ProviderConfig>) redirectUri (f_success: LoginData -> WebPart) (f_failure: FailureData -> WebPart) : WebPart =
+let processLogin (configs: Map<string,ProviderConfig>) redirectUri (fnSuccess: LoginData -> WebPart) (fnFailure: FailureData -> WebPart) : WebPart =
 
     fun ctx ->
         async {
-            try return! impl.login configs redirectUri f_success ctx
+            try return! impl.login configs redirectUri fnSuccess ctx
             with
-                | OAuthException e -> return! f_failure {FailureData.Code = 1; Message = e; Info = e} ctx
-                | e -> return! f_failure {FailureData.Code = 1; Message = e.Message; Info = e} ctx
+                | OAuthException e -> return! fnFailure {FailureData.Code = 1; Message = e; Info = e} ctx
+                | e -> return! fnFailure {FailureData.Code = 1; Message = e.Message; Info = e} ctx
         }
+
+/// <summary>
+/// Gets the login callback URL by an HTTP request.
+/// Provided for demo purposes as it cannot handle more complicated scenarios involving proxy, docker, azure etc.
+/// </summary>
+/// <param name="ctx"></param>
+let buildLoginUrl (ctx:HttpContext) =
+    let bb = new System.UriBuilder (ctx.request.url)
+    bb.Host <- ctx.request.host
+    bb.Path <- "oalogin"
+    bb.Query <- ""
+
+    bb.ToString()
 
 /// <summary>
 /// Handles OAuth authorization requests. Stores auth info in session cookie
 /// </summary>
-/// <param name="configs"></param>
-/// <param name="f_login">Store login data and provide continuation webpart</param>
-/// <param name="f_logout">Handle logout request and provide continuation webpart</param>
-/// <param name="f_failure"></param>
-let authorize configs f_login f_logout f_failure =
-
-    // pretty much way to build server root URI preserving the original user query
-    let getLoginUrl (ctx:HttpContext) =
-        let bb = new System.UriBuilder (ctx.request.url)
-        bb.Host <- ctx.request.host
-        bb.Path <- "oalogin"
-        bb.Query <- ""
-
-        bb.ToString()
-        
+/// <param name="loginRedirectUri">Provide external URL to /oalogin handler.</param>
+/// <param name="configs">OAuth configs</param>
+/// <param name="fnLogin">Store login data and provide continuation webpart</param>
+/// <param name="fnLogout">Handle logout request and provide continuation webpart</param>
+/// <param name="fnFailure"></param>
+let authorize loginRedirectUri configs fnLogin fnLogout fnFailure =
     choose [
-        path "/oaquery" >=> GET >=> context(fun ctx -> redirectAuthQuery configs (getLoginUrl ctx))
+        path "/oaquery" >=> GET >=> context(fun _ -> redirectAuthQuery configs loginRedirectUri)
 
         path "/logout" >=> GET >=> 
             context(fun ctx ->
-                let cont = f_logout()
+                let cont = fnLogout()
                 unsetPair Authentication.SessionAuthCookie >=> unsetPair Suave.State.CookieStateStore.StateCookie >=> cont
             )
         path "/oalogin" >=> GET >=>
             context(fun ctx ->
-                processLogin configs (getLoginUrl ctx)
-                    (f_login >> (fun wpb -> Authentication.authenticated Cookie.CookieLife.Session false >=> wpb))
-                    f_failure
+                processLogin configs loginRedirectUri
+                    (fnLogin >> (fun wpb -> Authentication.authenticated Cookie.CookieLife.Session false >=> wpb))
+                    fnFailure
                 )
     ]
 
@@ -236,9 +240,9 @@ let authorize configs f_login f_logout f_failure =
 /// </summary>
 /// <param name="configs"></param>
 /// <param name="protectedApi"></param>
-/// <param name="f_failure"></param>
-let protectedPart protectedApi f_failure:WebPart =
+/// <param name="fnFailure"></param>
+let protectedPart protectedApi fnFailure:WebPart =
     Authentication.authenticate Cookie.CookieLife.Session false
-        (fun () -> Choice2Of2 f_failure)
-        (fun _ ->  Choice2Of2 f_failure)
+        (fun () -> Choice2Of2 fnFailure)
+        (fun _ ->  Choice2Of2 fnFailure)
         protectedApi
