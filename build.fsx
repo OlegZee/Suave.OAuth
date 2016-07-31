@@ -150,7 +150,7 @@ do xake {ExecOptions.Default with Vars = ["NETFX-TARGET", "4.5"]; FileLog = "bui
                             "Suave", "1.0.0"
                         ]
                     ]
-                    nuget.files (libFiles |> nuget.target "lib\\net40")
+                    nuget.files (libFiles |> nuget.target "lib/net40")
                 ]
 
             let nuspec_file = "_.nuspec"
