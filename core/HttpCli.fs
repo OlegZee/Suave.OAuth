@@ -13,7 +13,8 @@ let send (url : string) meth (define : DefineRequest) =
 
         do define request
 
-        use! response = request.AsyncGetResponse()
+        let! (r:WebResponse) = request.GetResponseAsync()
+        use response = r
         let stream = response.GetResponseStream()
         use reader = new StreamReader(stream)
         return reader.ReadToEnd()

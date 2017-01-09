@@ -4,8 +4,6 @@ open Suave
 open Suave.Cookie
 open Suave.Operators
 open Suave.Filters
-open Suave.Successful
-open Suave.Web
 
 type DataEnc = | FormEncode | JsonEncode | Plain
 
@@ -72,7 +70,6 @@ module internal util =
 
     let urlEncode = HttpUtility.UrlEncode:string->string
     let asciiEncode = Encoding.ASCII.GetBytes:string -> byte[]
-    let utf8Encode = Encoding.UTF8.GetBytes:string -> byte[]
 
     let formEncode = List.map (fun (k,v) -> String.concat "=" [k; urlEncode v]) >> String.concat "&"
 
@@ -82,14 +79,6 @@ module internal util =
     let parseJsObj js =
         let jss = new JavaScriptSerializer()
         jss.DeserializeObject(js) :?> seq<_> |> Seq.map (|KeyValue|) |> Map.ofSeq
-
-    let stripQuery (uri:System.Uri) : string =
-        let i = uri.AbsoluteUri.IndexOf(uri.Query)
-
-        if i > 0 then
-            uri.AbsoluteUri.Substring(0, i)
-        else
-            uri.ToString()
 
 module private impl =
 
@@ -223,12 +212,12 @@ let authorize loginRedirectUri configs fnLogin fnLogout fnFailure =
         path "/oaquery" >=> GET >=> context(fun _ -> redirectAuthQuery configs loginRedirectUri)
 
         path "/logout" >=> GET >=> 
-            context(fun ctx ->
+            context(fun _ ->
                 let cont = fnLogout()
                 unsetPair Authentication.SessionAuthCookie >=> unsetPair Suave.State.CookieStateStore.StateCookie >=> cont
             )
         path "/oalogin" >=> GET >=>
-            context(fun ctx ->
+            context(fun _ ->
                 processLogin configs loginRedirectUri
                     (fnLogin >> (fun wpb -> Authentication.authenticated Cookie.CookieLife.Session false >=> wpb))
                     fnFailure
