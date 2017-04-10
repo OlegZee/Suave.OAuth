@@ -1,5 +1,8 @@
 ﻿module Suave.OAuth
 
+open System.Net.Http
+open Newtonsoft.Json
+
 open Suave
 open Suave.Cookie
 open Suave.Operators
@@ -15,7 +18,7 @@ type ProviderConfig = {
     request_info_uri: string
     scopes: string
     token_response_type: DataEnc
-    customize_req: System.Net.HttpWebRequest -> unit
+    customize_req: HttpRequestMessage -> unit
 }
 
 exception private OAuthException of string
@@ -65,10 +68,10 @@ let defineProviderConfigs f = providerConfigs |> Map.map f
 module internal util =
 
     open System.Text
-    open System.Web
-    open System.Web.Script.Serialization
+    open System.Net
+//    open System.Web.Script.Serialization
 
-    let urlEncode = HttpUtility.UrlEncode:string->string
+    let urlEncode = System.Net.WebUtility.UrlEncode:string->string
     let asciiEncode = Encoding.ASCII.GetBytes:string -> byte[]
 
     let formEncode = List.map (fun (k,v) -> String.concat "=" [k; urlEncode v]) >> String.concat "&"
@@ -77,8 +80,10 @@ module internal util =
         s.Split('&') |> Seq.map(fun p -> let [|a;b|] = p.Split('=') in a,b) |> Map.ofSeq
 
     let parseJsObj js =
-        let jss = new JavaScriptSerializer()
-        jss.DeserializeObject(js) :?> seq<_> |> Seq.map (|KeyValue|) |> Map.ofSeq
+    //     let jss = new JavaScriptSerializer()
+    //     jss.DeserializeObject(js) :?> seq<_> |> Seq.map (|KeyValue|) |> Map.ofSeq
+        //Json.fromJson
+        JsonConvert.DeserializeObject<Map<string, obj>> js
 
 module private impl =
 
@@ -192,12 +197,12 @@ let processLogin (configs: Map<string,ProviderConfig>) redirectUri (fnSuccess: L
 /// </summary>
 /// <param name="ctx"></param>
 let buildLoginUrl (ctx:HttpContext) =
-    let bb = new System.UriBuilder (ctx.request.url)
-    bb.Host <- ctx.request.host
-    bb.Path <- "oalogin"
-    bb.Query <- ""
+    let buildr = System.UriBuilder ctx.request.url
+    buildr.Host <- ctx.request.host
+    buildr.Path <- "oalogin"
+    buildr.Query <- ""
 
-    bb.ToString()
+    buildr.ToString()
 
 /// <summary>
 /// Handles OAuth authorization requests. Stores auth info in session cookie

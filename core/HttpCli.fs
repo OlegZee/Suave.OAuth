@@ -1,37 +1,35 @@
 ﻿module internal Suave.HttpCli
 
 open System.IO
-open System.Net
+open System.Net.Http
 
-type DefineRequest = HttpWebRequest -> unit
+let private httpClient = new HttpClient()
+httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Suave App") |> ignore
 
-let send (url : string) meth (define : DefineRequest) = 
-    async { 
-        let request = WebRequest.Create(url) :?> HttpWebRequest
-        request.Method <- meth
-        request.UserAgent <- "suave app"    // this line is required for github auth
+type DefineRequest = HttpRequestMessage -> unit
 
+let send (url : string) methd (define : DefineRequest) = 
+    async {
+        use request = new HttpRequestMessage(methd, url)
         do define request
 
-        let! (r:WebResponse) = request.GetResponseAsync()
-        use response = r
-        let stream = response.GetResponseStream()
-        use reader = new StreamReader(stream)
-        return reader.ReadToEnd()
+        let! response = httpClient.SendAsync request |> Async.AwaitTask
+        response.EnsureSuccessStatusCode() |> ignore
+
+        let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+        return responseBody
     }
 
 let post (url : string) (define : DefineRequest) (data : byte []) = 
-    send url "POST"
-        (fun request ->
-        request.ContentType <- "application/x-www-form-urlencoded"
-        request.ContentLength <- int64 data.Length
+    async {
+        use request = new HttpRequestMessage(HttpMethod.Post, url)
+        request.Content <- new ByteArrayContent(data)
 
-        do define request
-        
-        use stream = request.GetRequestStream()
-        stream.Write(data, 0, data.Length)
-        stream.Close()
+        let! response = httpClient.SendAsync request |> Async.AwaitTask
+        response.EnsureSuccessStatusCode() |> ignore
 
-)
+        let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+        return responseBody
+    }
 
-let get (url : string) = send url "GET"
+let get (url : string) = send url HttpMethod.Get
