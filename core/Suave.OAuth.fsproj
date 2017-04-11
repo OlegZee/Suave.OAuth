@@ -12,7 +12,7 @@
     <PackageReference Include="FSharp.Core" Version="4.1.*" />
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-    <PackageReference Include="Suave" Version="2.1.0" />
+    <PackageReference Include="Suave" Version="2.0.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.1" />
   </ItemGroup>
 </Project>

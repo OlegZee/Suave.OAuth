@@ -127,7 +127,9 @@ module private impl =
                 ]
 
                 async {
-                    let! response = parms |> util.formEncode |> util.asciiEncode |> HttpCli.post config.exchange_token_uri config.customize_req
+                    let data = parms |> util.formEncode
+                    data |> printfn "post %A"        // TODO log
+                    let! response = data |> util.asciiEncode |> HttpCli.post config.exchange_token_uri config.customize_req
                     response |> printfn "Auth response is %A"        // TODO log
 
                     let access_token = response |> extractToken

@@ -24,6 +24,7 @@ let post (url : string) (define : DefineRequest) (data : byte []) =
     async {
         use request = new HttpRequestMessage(HttpMethod.Post, url)
         request.Content <- new ByteArrayContent(data)
+        do define request
 
         let! response = httpClient.SendAsync request |> Async.AwaitTask
         response.EnsureSuccessStatusCode() |> ignore
