@@ -5,7 +5,6 @@
   <ItemGroup>
     <Compile Include="VersionInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="HttpCli.fs" />
     <Compile Include="OAuth.fs" />
   </ItemGroup>
   <ItemGroup>

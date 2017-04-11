@@ -87,6 +87,9 @@ module internal util =
 
 module private impl =
 
+    let httpClient = new HttpClient()
+    httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Suave App") |> ignore
+
     let getConfig ctx (configs: Map<string,ProviderConfig>) =
 
         let provider_key =
@@ -127,21 +130,33 @@ module private impl =
                 ]
 
                 async {
-                    let data = parms |> util.formEncode
-                    data |> printfn "post %A"        // TODO log
-                    let! response = data |> util.asciiEncode |> HttpCli.post config.exchange_token_uri config.customize_req
-                    response |> printfn "Auth response is %A"        // TODO log
+                    use authRequest = new HttpRequestMessage(HttpMethod.Post, config.exchange_token_uri)
+                    authRequest.Content <- new StringContent(parms |> util.formEncode, System.Text.Encoding.ASCII, "application/x-www-form-urlencoded")
+                    do config.customize_req authRequest
 
-                    let access_token = response |> extractToken
+                    let! response = httpClient.SendAsync authRequest |> Async.AwaitTask
+                    response.EnsureSuccessStatusCode() |> ignore
+
+                    let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+                    responseBody |> printfn "Auth response is %A"        // TODO log
+
+                    let access_token = responseBody |> extractToken
 
                     if Option.isNone access_token then
                         raise (OAuthException "failed to extract access token")
 
                     let uri = config.request_info_uri + "?" + (["access_token", Option.get access_token] |> util.formEncode)
-                    let! response = HttpCli.get uri config.customize_req
-                    response |> printfn "/user response %A"        // TODO log
+                    use request = new HttpRequestMessage(HttpMethod.Get, uri)
+                    do config.customize_req request
 
-                    let user_info:Map<string,obj> = response |> util.parseJsObj
+                    let! response = httpClient.SendAsync request |> Async.AwaitTask
+                    response.EnsureSuccessStatusCode() |> ignore
+
+                    let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+
+                    responseBody |> printfn "/user response %A"        // TODO log
+
+                    let user_info:Map<string,obj> = responseBody |> util.parseJsObj
                     user_info |> printfn "/user_info response %A"  // TODO log
 
                     let user_id = user_info.["id"] |> System.Convert.ToString
