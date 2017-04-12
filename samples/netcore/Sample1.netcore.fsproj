@@ -3,9 +3,11 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="Program.fs" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.*" />
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
@@ -15,6 +17,8 @@
     <PackageReference Include="Suave.DotLiquid" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\core\Suave.OAuth.fsproj" />
+    <!--<ProjectReference Include="..\core\Suave.OAuth.fsproj" />-->
+    <PackageReference Include="Suave.OAuth" Version="0.9.0-pre1" />
   </ItemGroup>
+ 
 </Project>

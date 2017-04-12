@@ -12,7 +12,7 @@ if not (System.IO.File.Exists file) then
 #r @"packages/Xake.Core.dll"
 //#r @"bin/Debug/Xake.Core.dll"
 
-open Xake
+open Xakedotnet 
 
 let systemClr cmd args =
     let cmd',args' = if Xake.Env.isUnix then "mono", cmd::args else cmd,args

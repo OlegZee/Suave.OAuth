@@ -1,0 +1,22 @@
+﻿<head>
+	<title>Main page</title>
+</head>
+<body>
+	<h1>Main page</h1>
+	Hello there {{model.name}}!
+	<p>
+
+	{% if model.logged_in == false %}
+
+	Login using: 
+	{% for p in model.providers -%}
+    | <a href="/oaquery?provider={{p}}" title="{{p}} login">{{p}}</a>
+    {% endfor -%}
+
+	{% else %}
+	<p>
+	You are logged on as a user with id: {{model.logged_id}}
+	<a href="/logout">Logout</a>
+
+	{% endif %}
+</body>

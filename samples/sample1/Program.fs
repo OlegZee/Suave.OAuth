@@ -10,8 +10,6 @@ open Suave.DotLiquid
 
 open Suave.OAuth
 
-open Microsoft.Extensions.Configuration
-
 type AppModel =
     {
     mutable name: string
@@ -20,6 +18,22 @@ type AppModel =
     mutable provider: string
     mutable providers: string[]
     }
+
+module private Config =
+
+    open System.Web.Script.Serialization
+    open System.Collections.Generic
+
+    let KVf f (kv:KeyValuePair<string,_>) = (kv.Key, kv.Value |> f)
+    let jso f (d:obj) = ((d :?> IDictionary<string,_>)) |> Seq.map (KVf f) |> Map.ofSeq
+    let jss = new JavaScriptSerializer()
+
+    let readConfig file =
+        (System.Environment.GetEnvironmentVariable("USERPROFILE"), file)
+        |> System.IO.Path.Combine
+        |> System.IO.File.ReadAllText
+        |> jss.DeserializeObject
+        |> jso (jso unbox<string>)
 
 [<EntryPoint>]
 let main argv =
@@ -31,18 +45,23 @@ let main argv =
         }
 
     // Here I'm reading my personal API keys from file stored in my %HOME% folder. You will likely define you keys in code (see below).
-    let config =
-        ConfigurationBuilder().SetBasePath(
-            System.Environment.GetEnvironmentVariable("USERPROFILE")
-            ).AddJsonFile("suave.oauth.config").Build()
+    let ocfg = Config.readConfig "suave.oauth.config"
 
     let oauthConfigs =
         defineProviderConfigs (fun pname c ->
             let key = pname.ToLowerInvariant()
             {c with
-                client_id = config.[key + ":client_id"]
-                client_secret = config.[key + ":client_secret"]}
+                client_id = ocfg.[key].["client_id"]
+                client_secret = ocfg.[key].["client_secret"]}
         )
+        // the following code adds "yandex" provider (for demo purposes)
+        |> Map.add "yandex"
+            {OAuth.EmptyConfig with
+                authorize_uri = "https://oauth.yandex.ru/authorize"
+                exchange_token_uri = "https://oauth.yandex.ru/token"
+                request_info_uri = "https://login.yandex.ru/info"
+                scopes = ""
+                client_id = "xxxxxxxx"; client_secret = "dddddddd"}
 
 (*  // you will go that way more likely
     let oauthConfigs =
@@ -58,9 +77,6 @@ let main argv =
             | _ -> id    // this application does not define secret keys for other oauth providers
         )
 *)
-    // TODO this is only ok if you run sample from example folder using "dotnet run" command
-    setTemplatesDir ".\\example"
-
     let app =
         choose [
             path "/" >=> page "main.html" model
