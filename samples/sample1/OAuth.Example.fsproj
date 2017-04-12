@@ -93,7 +93,7 @@
       <HintPath>..\..\packages\Suave.DotLiquid.2.0.0\lib\net40\Suave.DotLiquid.dll</HintPath>
     </Reference>
     <Reference Include="Suave.OAuth">
-      <HintPath>..\..\packages\Suave.OAuth.0.9.0-pre1\lib\net461\Suave.OAuth.dll</HintPath>
+      <HintPath>..\..\packages\Suave.OAuth.0.9.0-pre2\lib\net461\Suave.OAuth.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

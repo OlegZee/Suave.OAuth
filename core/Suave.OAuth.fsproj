@@ -10,7 +10,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <VersionPrefix>0.9</VersionPrefix>
-    <VersionSuffix>pre1</VersionSuffix>
+    <VersionSuffix>pre2</VersionSuffix>
 
     <Authors>OlegZee</Authors>
     <PackageTags>suave;oauth;fsharp</PackageTags>
@@ -26,8 +26,16 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.1.*" />
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="Suave" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461'">
+    <PackageReference Include="System.Net.Http" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.6'">
     <PackageReference Include="System.Net.Http" Version="4.3.0" />
   </ItemGroup>
+
 </Project>

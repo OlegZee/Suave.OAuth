@@ -18,7 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <!--<ProjectReference Include="..\core\Suave.OAuth.fsproj" />-->
-    <PackageReference Include="Suave.OAuth" Version="0.9.0-pre1" />
+    <PackageReference Include="Suave.OAuth" Version="0.9.0-pre2" />
   </ItemGroup>
  
 </Project>
