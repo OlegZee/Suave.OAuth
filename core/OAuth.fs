@@ -7,6 +7,7 @@ open Suave
 open Suave.Cookie
 open Suave.Operators
 open Suave.Filters
+open Suave.Logging
 
 type DataEnc = | FormEncode | JsonEncode | Plain
 
@@ -71,7 +72,7 @@ module internal util =
     open System.Net
 //    open System.Web.Script.Serialization
 
-    let urlEncode = System.Net.WebUtility.UrlEncode:string->string
+    let urlEncode = WebUtility.UrlEncode:string->string
     let asciiEncode = Encoding.ASCII.GetBytes:string -> byte[]
 
     let formEncode = List.map (fun (k,v) -> String.concat "=" [k; urlEncode v]) >> String.concat "&"
@@ -86,6 +87,8 @@ module internal util =
         JsonConvert.DeserializeObject<Map<string, obj>> js
 
 module private impl =
+
+    let logger = Log.create "Suave.OAuth"
 
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Suave App") |> ignore
@@ -114,8 +117,11 @@ module private impl =
                 | JsonEncode -> util.parseJsObj >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
                 | FormEncode -> util.formDecode >> Map.tryFind "access_token" >> Option.bind (unbox<string> >> Some)
                 | Plain ->      Some
-            ctx.request.queryParam "code" |> printfn "param code: %A" // TODO log
 
+            logger.debug (Message.eventX "Param access code {code}"
+                >> Message.setFieldValue "code" (ctx.request.queryParam "code")
+            )
+            
             match ctx.request.queryParam "code" with
             | Choice2Of2 _ ->
                 raise (OAuthException "server did not return access code")
@@ -138,7 +144,10 @@ module private impl =
                     response.EnsureSuccessStatusCode() |> ignore
 
                     let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-                    responseBody |> printfn "Auth response is %A"        // TODO log
+
+                    logger.debug (Message.eventX "Response body: {body}"
+                        >> Message.setFieldValue "body" responseBody
+                    )
 
                     let access_token = responseBody |> extractToken
 
@@ -153,11 +162,11 @@ module private impl =
                     response.EnsureSuccessStatusCode() |> ignore
 
                     let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-
-                    responseBody |> printfn "/user response %A"        // TODO log
-
                     let user_info:Map<string,obj> = responseBody |> util.parseJsObj
-                    user_info |> printfn "/user_info response %A"  // TODO log
+
+                    logger.debug (Message.eventX "user_info response: {user_info}"
+                        >> Message.setFieldValue "user_info" user_info
+                    )
 
                     let user_id = user_info.["id"] |> System.Convert.ToString
                     let user_name = user_info.["name"] |> System.Convert.ToString
@@ -187,7 +196,11 @@ let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart
             ]
 
         let q = config.authorize_uri + "?" + (parms |> util.formEncode)
-        printfn "sending request: %A" q     // TODO convert to a log record
+
+        impl.logger.debug (Message.eventX "Sending redirect request: {request}"
+            >> Message.setFieldValue "request" q
+        )
+
         Redirection.FOUND q
     )
 
@@ -236,12 +249,12 @@ let authorize loginRedirectUri configs fnLogin fnLogout fnFailure =
         path "/logout" >=> GET >=> 
             context(fun _ ->
                 let cont = fnLogout()
-                unsetPair Authentication.SessionAuthCookie >=> unsetPair Suave.State.CookieStateStore.StateCookie >=> cont
+                unsetPair Authentication.SessionAuthCookie >=> unsetPair State.CookieStateStore.StateCookie >=> cont
             )
         path "/oalogin" >=> GET >=>
             context(fun _ ->
                 processLogin configs loginRedirectUri
-                    (fnLogin >> (fun wpb -> Authentication.authenticated Cookie.CookieLife.Session false >=> wpb))
+                    (fnLogin >> (fun wpb -> Authentication.authenticated Session false >=> wpb))
                     fnFailure
                 )
     ]
@@ -253,7 +266,7 @@ let authorize loginRedirectUri configs fnLogin fnLogout fnFailure =
 /// <param name="protectedApi"></param>
 /// <param name="fnFailure"></param>
 let protectedPart protectedApi fnFailure:WebPart =
-    Authentication.authenticate Cookie.CookieLife.Session false
+    Authentication.authenticate Session false
         (fun () -> Choice2Of2 fnFailure)
         (fun _ ->  Choice2Of2 fnFailure)
         protectedApi
