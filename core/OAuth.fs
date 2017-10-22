@@ -70,7 +70,6 @@ module internal util =
 
     open System.Text
     open System.Net
-//    open System.Web.Script.Serialization
 
     let urlEncode = WebUtility.UrlEncode:string->string
     let asciiEncode = Encoding.ASCII.GetBytes:string -> byte[]
@@ -95,14 +94,14 @@ module private impl =
 
     let getConfig ctx (configs: Map<string,ProviderConfig>) =
 
-        let provider_key =
+        let providerKey =
             match ctx.request.queryParam "provider" with
             |Choice1Of2 code -> code.ToLowerInvariant()
             | _ -> "google"
 
-        match configs.TryFind provider_key with
+        match configs.TryFind providerKey with
         | None -> raise (OAuthException "bad provider key in query")
-        | Some c -> provider_key, c
+        | Some c -> providerKey, c
 
 
     let login (configs: Map<string,ProviderConfig>) redirectUri (fnSuccess: LoginData -> WebPart) : WebPart =
@@ -110,7 +109,7 @@ module private impl =
         // TODO use Uri to properly add parameter to redirectUri
 
         (fun ctx ->
-            let provider_key,config = configs |> getConfig ctx
+            let providerKey,config = configs |> getConfig ctx
 
             let extractToken =
                 match config.token_response_type with
@@ -122,60 +121,60 @@ module private impl =
                 >> Message.setFieldValue "code" (ctx.request.queryParam "code")
             )
             
-            match ctx.request.queryParam "code" with
-            | Choice2Of2 _ ->
-                raise (OAuthException "server did not return access code")
-            | Choice1Of2 code ->
+            let code =
+                match ctx.request.queryParam "code" with
+                | Choice2Of2 _ ->    raise (OAuthException "server did not return access code")
+                | Choice1Of2 code -> code
 
-                let parms = [
-                    "code", code
-                    "client_id", config.client_id
-                    "client_secret", config.client_secret
-                    "redirect_uri", redirectUri + "?provider=" + provider_key
-                    "grant_type", "authorization_code"
-                ]
+            let parms = [
+                "code", code
+                "client_id", config.client_id
+                "client_secret", config.client_secret
+                "redirect_uri", redirectUri + "?provider=" + providerKey
+                "grant_type", "authorization_code"
+            ]
 
-                async {
-                    use authRequest = new HttpRequestMessage(HttpMethod.Post, config.exchange_token_uri)
-                    authRequest.Content <- new StringContent(parms |> util.formEncode, System.Text.Encoding.ASCII, "application/x-www-form-urlencoded")
-                    do config.customize_req authRequest
+            async {
+                use authRequest = new HttpRequestMessage(HttpMethod.Post, config.exchange_token_uri)
+                authRequest.Content <- new StringContent(parms |> util.formEncode, System.Text.Encoding.ASCII, "application/x-www-form-urlencoded")
+                do config.customize_req authRequest
 
-                    let! response = httpClient.SendAsync authRequest |> Async.AwaitTask
-                    response.EnsureSuccessStatusCode() |> ignore
+                let! response = httpClient.SendAsync authRequest |> Async.AwaitTask
+                let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
 
-                    let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+                logger.debug (Message.eventX "Exchange token response code is {code}. Body:\"{body}\""
+                    >> Message.setFieldValue "code" response.StatusCode
+                    >> Message.setFieldValue "body" responseBody
+                )
 
-                    logger.debug (Message.eventX "Response body: {body}"
-                        >> Message.setFieldValue "body" responseBody
-                    )
+                response.EnsureSuccessStatusCode() |> ignore
+                let accessToken = 
+                    responseBody |> extractToken |> function
+                    | None -> raise (OAuthException "failed to extract access token")
+                    | Some token -> token
 
-                    let access_token = responseBody |> extractToken
+                let uri = config.request_info_uri + "?" + (["access_token", accessToken] |> util.formEncode)
+                use request = new HttpRequestMessage(HttpMethod.Get, uri)
+                do config.customize_req request
 
-                    if Option.isNone access_token then
-                        raise (OAuthException "failed to extract access token")
+                let! response = httpClient.SendAsync request |> Async.AwaitTask
+                response.EnsureSuccessStatusCode() |> ignore
 
-                    let uri = config.request_info_uri + "?" + (["access_token", Option.get access_token] |> util.formEncode)
-                    use request = new HttpRequestMessage(HttpMethod.Get, uri)
-                    do config.customize_req request
+                let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+                let userInfo: Map<string,obj> = responseBody |> util.parseJsObj
 
-                    let! response = httpClient.SendAsync request |> Async.AwaitTask
-                    response.EnsureSuccessStatusCode() |> ignore
+                logger.debug (Message.eventX "user_info response: {user_info}"
+                    >> Message.setFieldValue "user_info" userInfo
+                )
 
-                    let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-                    let user_info:Map<string,obj> = responseBody |> util.parseJsObj
+                let userId = userInfo.["id"] |> System.Convert.ToString
+                let userName = userInfo.["name"] |> System.Convert.ToString
 
-                    logger.debug (Message.eventX "user_info response: {user_info}"
-                        >> Message.setFieldValue "user_info" user_info
-                    )
-
-                    let user_id = user_info.["id"] |> System.Convert.ToString
-                    let user_name = user_info.["name"] |> System.Convert.ToString
-
-                    return! fnSuccess
-                        { ProviderName = provider_key;
-                          Id = user_id; Name = user_name; AccessToken = Option.get access_token;
-                          ProviderData = user_info} ctx
-                }
+                return! fnSuccess
+                    { ProviderName = providerKey;
+                      Id = userId; Name = userName; AccessToken = accessToken;
+                      ProviderData = userInfo} ctx
+            }
         )
 
 /// <summary>
@@ -186,10 +185,10 @@ module private impl =
 let redirectAuthQuery (configs:Map<string,ProviderConfig>) redirectUri : WebPart =
     warbler (fun ctx ->
 
-        let provider_key,config = configs |> impl.getConfig ctx
+        let providerKey, config = configs |> impl.getConfig ctx
 
         let parms = [
-            "redirect_uri", redirectUri + "?provider=" + provider_key
+            "redirect_uri", redirectUri + "?provider=" + providerKey
             "response_type", "code"
             "client_id", config.client_id
             "scope", config.scopes

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.26730.10
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D10B0109-5417-4EB5-B56C-E89C3EA79AC0}"
 	ProjectSection(SolutionItems) = preProject
@@ -12,11 +12,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Suave.OAuth", "core\Suave.OAuth.fsproj", "{6584D666-D04D-4DFC-8C54-AA404AB81753}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Suave.OAuth", "core\Suave.OAuth.fsproj", "{6584D666-D04D-4DFC-8C54-AA404AB81753}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Sample-Netcore", "samples\netcore\Sample1.netcore.fsproj", "{E86D8E15-5391-4F7F-9394-46035B452214}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OAuth.Example", "samples\sample1\OAuth.Example.fsproj", "{69FA0B13-9FAC-4A10-86C9-0D7832B0E016}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,12 +30,11 @@ Global
 		{E86D8E15-5391-4F7F-9394-46035B452214}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E86D8E15-5391-4F7F-9394-46035B452214}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E86D8E15-5391-4F7F-9394-46035B452214}.Release|Any CPU.Build.0 = Release|Any CPU
-		{69FA0B13-9FAC-4A10-86C9-0D7832B0E016}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{69FA0B13-9FAC-4A10-86C9-0D7832B0E016}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{69FA0B13-9FAC-4A10-86C9-0D7832B0E016}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{69FA0B13-9FAC-4A10-86C9-0D7832B0E016}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {196B9ADE-2569-475E-83EE-9E77E30B62FD}
 	EndGlobalSection
 EndGlobal

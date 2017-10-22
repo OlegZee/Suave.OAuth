@@ -26,7 +26,7 @@ module private Config =
 
     let KVf f (kv:KeyValuePair<string,_>) = (kv.Key, kv.Value |> f)
     let jso f (d:obj) = ((d :?> IDictionary<string,_>)) |> Seq.map (KVf f) |> Map.ofSeq
-    let jss = new JavaScriptSerializer()
+    let jss = JavaScriptSerializer()
 
     let readConfig file =
         (System.Environment.GetEnvironmentVariable("USERPROFILE"), file)
@@ -36,7 +36,7 @@ module private Config =
         |> jso (jso unbox<string>)
 
 [<EntryPoint>]
-let main argv =
+let main _ =
 
     let model = {
         name = "olegz"; logged_id = ""; logged_in = false

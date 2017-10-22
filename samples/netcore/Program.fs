@@ -22,7 +22,7 @@ type AppModel =
     }
 
 [<EntryPoint>]
-let main argv =
+let main _ =
 
     let model = {
         name = "olegz"; logged_id = ""; logged_in = false
