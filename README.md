@@ -1,4 +1,5 @@
 # Suave.OAuth
+
 A set of WebParts to add OAuth authentication for Suave Web applications. The purpose of OAuth in this library is to allow users of your
 application to authorize using their google/twitter/github/... accounts.
 
@@ -26,6 +27,7 @@ specifying redundant info.
 ### Adding handler to your Suave based application
 
 Now copy both `client id` and `client secret` to the code below.
+
 ```fsharp
 open Suave.OAuth
 
@@ -46,6 +48,7 @@ let oauthConfigs =
 ```
 
 Finally add authorization handle to your application:
+
 ```fsharp
 OAuth.authorize authRedirectUri oauthConfigs
     (fun loginData ->
@@ -94,16 +97,19 @@ loginData contains access_token generated for your oauth provider session. Howev
 expires in one hour). Anyway whenever you want to extract more data from provider you should do it right after login.
 
 ### API change in 0.7.0
-The signature of authorize function was changed in 0.7.x, now it expects you will provide authorization redirect url. In prior version the attempt to build it authomatically
+
+The signature of authorize function was changed in 0.7.x, now it expects you will provide authorization redirect url. In prior version the attempt to build it automatically
 was made which is however impossible in general case such as using server proxy or docker.
 
 ## Customizing queries
+
 While defining configs you could define:
 
 * provider specific **'scopes'** so that you can request more specific info from provider
 * **customize_req**: allows to define specific headers or proxy settings for http webrequest instance
 
 You could also define oauth2 provider not in list:
+
 ```fsharp
     let oauthConfigs =
         defineProviderConfigs (
@@ -123,3 +129,10 @@ You could also define oauth2 provider not in list:
 
    * [Google API](https://developers.google.com/identity/protocols/OAuth2WebServer)
    * [Github API](https://developer.github.com/v3/oauth/)
+
+# Build
+
+'''
+dotnet pack -c Release /p:version=0.11.0
+dotnet nuget push bin\Release\Suave.OAuth.0.11.0.nupkg --source nuget.org --api-key <API_KEY>
+'''
