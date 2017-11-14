@@ -7,12 +7,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="1.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="1.1.1" />
-    <PackageReference Include="Suave" Version="2.0.0" />
-    <PackageReference Include="Suave.DotLiquid" Version="2.0.0" />
+    <PackageReference Include="Suave" Version="2.*" />
+    <PackageReference Include="Suave.DotLiquid" Version="2.*" />
   </ItemGroup>
   <ItemGroup>
     <!--<ProjectReference Include="..\core\Suave.OAuth.fsproj" />-->
-    <PackageReference Include="Suave.OAuth" Version="0.9.0-pre2" />
+    <PackageReference Include="Suave.OAuth" Version="0.11.0" />
   </ItemGroup>
  
 </Project>

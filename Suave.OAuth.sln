@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Suave.OAuth", "core\Suave.OAuth.fsproj", "{6584D666-D04D-4DFC-8C54-AA404AB81753}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Suave.OAuth", "src\Suave.OAuth.fsproj", "{6584D666-D04D-4DFC-8C54-AA404AB81753}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Sample-Netcore", "samples\netcore\Sample1.netcore.fsproj", "{E86D8E15-5391-4F7F-9394-46035B452214}"
 EndProject
