@@ -200,3 +200,4 @@ FakesAssemblies/
 .vagrant/
 nupkg/
 _*.nuspec
+/.vscode

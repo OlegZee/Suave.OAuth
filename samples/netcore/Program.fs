@@ -66,7 +66,7 @@ let main _ =
             path "/" >=> page "main.html" model
 
             warbler(fun ctx ->
-                let authorizeRedirectUri = buildLoginUrl ctx in
+                let authorizeRedirectUri = buildLoginUrl(ctx, false) in
                 // Note: logon state for current user is stored in global variable, which is ok for demo purposes.
                 // in your application you shoud store such kind of data to session data
                 OAuth.authorize authorizeRedirectUri oauthConfigs
