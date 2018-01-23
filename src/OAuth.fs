@@ -225,13 +225,17 @@ let processLogin (configs: Map<string,ProviderConfig>) redirectUri (fnSuccess: L
 /// Provided for demo purposes as it cannot handle more complicated scenarios involving proxy, docker, azure etc.
 /// </summary>
 /// <param name="ctx"></param>
-let buildLoginUrl (ctx:HttpContext) =
-    let buildr = System.UriBuilder ctx.request.url
-    buildr.Host <- ctx.request.host
-    buildr.Path <- "oalogin"
-    buildr.Query <- ""
+/// <param name="omitPort"></param>
+let buildLoginUrl (ctx: HttpContext, omitPort: bool) =
+    let bb = System.UriBuilder (ctx.request.url)
+    bb.Host <- ctx.request.host
+    bb.Path <- "oalogin"
+    match omitPort with
+    | true -> bb.Port <- -1
+    | _ -> ()
+    bb.Query <- ""
 
-    buildr.ToString()
+    bb.ToString()
 
 /// <summary>
 /// Handles OAuth authorization requests. Stores auth info in session cookie
